@@ -14,7 +14,7 @@ basicSwitch.prototype={
 		let switchService=new Service.Switch(type, device.id)
 		let switchOn=false
 		if(device.statusDescription=="Charging"){switchOn=true}
-    switchService 
+    switchService
       .setCharacteristic(Characteristic.On, switchOn)
       .setCharacteristic(Characteristic.Name, type)
       .setCharacteristic(Characteristic.StatusFault,false)
@@ -28,7 +28,7 @@ basicSwitch.prototype={
       .on('get', this.getSwitchValue.bind(this, switchService))
       .on('set', this.setSwitchValue.bind(this, device, switchService))
   },
-	
+
   setSwitchValue(device, switchService, value, callback){
 		this.wallboxapi.getChargerData(this.platform.token,device.id).then(response=>{
 			try{
@@ -37,7 +37,7 @@ basicSwitch.prototype={
 			}catch(error){
 				connected=209
 				this.log.error("failed connected state check")
-			}		
+			}
 			switch (connected){
 				case 161: //no car
 				case 209:
@@ -56,8 +56,8 @@ basicSwitch.prototype={
 					switchService.getCharacteristic(Characteristic.On).updateValue(!value)
 					callback()
 					break
-				case 178: //car unocked 
-				case 182:	
+				case 178: //car unlocked
+				case 182:
 				case 194:
 					this.log.debug('toggle outlet state %s',switchService.getCharacteristic(Characteristic.Name).value)
 					if(switchService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
@@ -71,14 +71,18 @@ basicSwitch.prototype={
 										switchService.getCharacteristic(Characteristic.On).updateValue(value)
 										this.log.info('Charging resumed')
 										break
+									case 403: // Wrong current status to start charging action
+										switchService.getCharacteristic(Characteristic.On).updateValue(value);
+										this.log.warn('Wrong status showing in HomeKit, updating value. %s', value)
+										break;
 									default:
 										switchService.getCharacteristic(Characteristic.On).updateValue(!value)
 										this.log.info('Failed to start charging')
 										this.log.debug(response.data)
 										break
 								}
-							})	
-						} 
+							})
+						}
 						else {
 							this.wallboxapi.remoteAction(this.platform.token,device.id,'pause').then(response=>{
 								switch(response.status){
@@ -92,11 +96,15 @@ basicSwitch.prototype={
 										this.log.debug(response.data)
 										break
 								}
-							})	
+							})
 						}
-					}	
+					}
 					callback()
 					break
+				case 14:
+					this.log.error('Charger %s is in error state', response.data.data.chargerData.name);
+					switchService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+					break;
 				default:
 					this.log.info('This opertation cannot be competed at this time')
 					switchService.getCharacteristic(Characteristic.On).updateValue(!value)
@@ -114,7 +122,7 @@ basicSwitch.prototype={
 			currentValue=switchService.getCharacteristic(Characteristic.On).value
 			callback(null, currentValue)
 		}
-	} 
+	}
 
 }
 

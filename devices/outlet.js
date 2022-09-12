@@ -14,7 +14,7 @@ basicOutlet.prototype={
 		let outletService=new Service.Outlet(type, device.id)
 		let outletOn=false
 		if(device.statusDescription=="Charging"){outletOn=true}
-    outletService 
+    outletService
       .setCharacteristic(Characteristic.On, outletOn)
       .setCharacteristic(Characteristic.Name, type)
       .setCharacteristic(Characteristic.StatusFault,false)
@@ -37,7 +37,7 @@ basicOutlet.prototype={
 			}catch(error){
 				connected=209
 				this.log.error("failed connected state check")
-			}	
+			}
 			/*
 			staus to statusDescription
 			161: "Ready: Plug your car in"
@@ -49,7 +49,7 @@ basicOutlet.prototype={
 			210: "Locked: Unlock to start session" car connected
 			4: "Complete"
 			5: "Offline"
-			*/	
+			*/
 			switch (connected){
 				case 161: //no car
 				case 209:
@@ -68,8 +68,8 @@ basicOutlet.prototype={
 					outletService.getCharacteristic(Characteristic.On).updateValue(!value)
 					callback()
 					break
-				case 178: //car unocked 
-				case 182:	
+				case 178: //car unlocked
+				case 182:
 				case 194:
 					this.log.debug('toggle outlet state %s',outletService.getCharacteristic(Characteristic.Name).value)
 					if(outletService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
@@ -83,14 +83,18 @@ basicOutlet.prototype={
 										outletService.getCharacteristic(Characteristic.On).updateValue(value)
 										this.log.info('Charging resumed')
 										break
+									case 403: // Wrong current status to start charging action
+										outletService.getCharacteristic(Characteristic.On).updateValue(value);
+										this.log.warn('Wrong status showing in HomeKit, updating value. %s', value)
+										break;
 									default:
 										outletService.getCharacteristic(Characteristic.On).updateValue(!value)
 										this.log.info('Failed to start charging')
 										this.log.debug(response.data)
 										break
 								}
-							})	
-						} 
+							})
+						}
 						else {
 							this.wallboxapi.remoteAction(this.platform.token,device.id,'pause').then(response=>{
 								switch(response.status){
@@ -104,11 +108,15 @@ basicOutlet.prototype={
 										this.log.debug(response.data)
 										break
 								}
-							})	
+							})
 						}
-					}	
+					}
 					callback()
 					break
+				case 14:
+					this.log.error('Charger %s is in error state', response.data.data.chargerData.name);
+					outletService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+					break;
 				default:
 					this.log.info('This opertation cannot be competed at this time')
 					outletService.getCharacteristic(Characteristic.On).updateValue(!value)
@@ -126,7 +134,7 @@ basicOutlet.prototype={
 			currentValue=outletService.getCharacteristic(Characteristic.On).value
 			callback(null, currentValue)
 		}
-	} 
+	}
 
 }
 

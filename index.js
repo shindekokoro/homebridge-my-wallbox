@@ -7,6 +7,6 @@ module.exports = (homebridge) => {
   UUIDGen = homebridge.hap.uuid
   PluginName = 'homebridge-my-wallbox'
   PlatformName = 'wallbox'
-  
+
   homebridge.registerPlatform(PluginName, PlatformName, PlatformWallbox, true)
 }

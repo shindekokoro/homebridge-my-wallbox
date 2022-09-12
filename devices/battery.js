@@ -21,9 +21,9 @@ battery.prototype={
 			.setCharacteristic(Characteristic.ActiveIdentifier, device.maxAvailableCurrent)
     return batteryStatus
   },
-  
+
   configureBatteryService(batteryStatus){
-    this.log.debug("configured battery service for %s",batteryStatus.getCharacteristic(Characteristic.Name).value)
+    this.log.debug("Configured battery service for %s",batteryStatus.getCharacteristic(Characteristic.Name).value)
     batteryStatus
 			.getCharacteristic(Characteristic.StatusLowBattery)
 			//.on('get', this.getStatusLowBattery.bind(this, batteryStatus))
@@ -39,7 +39,7 @@ battery.prototype={
 			}
 		callback(null,currentValue)
 	}
-	
+
 }
 
 module.exports = battery

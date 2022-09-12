@@ -11,7 +11,7 @@ function wallboxAPI (platform,log){
 wallboxAPI.prototype={
 
 	checkEmail: async function(email){
-		try {  
+		try {
 			this.log.debug('Retrieving device')
 			let response = await axios({
 					method: 'get',
@@ -32,7 +32,7 @@ wallboxAPI.prototype={
 
 	signin: async function(email,password){
 	let b64encoded=(Buffer.from(email+':'+password,'utf8')).toString('base64')
-	try {  
+	try {
 			this.log.debug('Retrieving token')
 			let response = await axios({
 					method: 'get',
@@ -54,9 +54,9 @@ wallboxAPI.prototype={
 			return  response
 		}catch(err) {this.log.error('Error retrieving token %s', err)}
 	},
-	
+
 	getId: async function(token,id){
-	try {  
+	try {
 			this.log.debug('Retrieving User ID')
 			let response = await axios({
 					method: 'get',
@@ -77,7 +77,7 @@ wallboxAPI.prototype={
 	},
 
 	getUser: async function(token,userId){
-		try {  
+		try {
 			this.log.debug('Retrieving user info')
 			let response = await axios({
 					method: 'get',
@@ -98,7 +98,7 @@ wallboxAPI.prototype={
 	},
 
 	getChargerGroups: async function(token){
-		try {  
+		try {
 			this.log.debug('Retrieving charger groups')
 			let response = await axios({
 					method: 'get',
@@ -117,10 +117,10 @@ wallboxAPI.prototype={
 			return response
 		}catch(err) {this.log.error('Error retrieving charger groups %s', err)}
 	},
-	
+
 
 	getChargerData: async function(token,chargerId){
-		try {  
+		try {
 			this.log.debug('Retrieving charger info')
 			let response = await axios({
 					method: 'get',
@@ -139,9 +139,9 @@ wallboxAPI.prototype={
 			return response
 		}catch(err) {this.log.error('Error retrieving charger %s', err)}
 	},
-	
+
 	getChargerConfig: async function(token,chargerId){
-		try {  
+		try {
 			this.log.debug('Retrieving charger config')
 			let response = await axios({
 					method: 'get',
@@ -162,7 +162,7 @@ wallboxAPI.prototype={
 	},
 
 	lock: async function(token,chargerId,value){
-		try {  
+		try {
 			this.log.debug('Setting charger lock state for %s to %s',chargerId,value)
 			let response = await axios({
 					method: 'put',
@@ -186,7 +186,7 @@ wallboxAPI.prototype={
 	},
 
 	setAmps: async function(token,chargerId,value){
-		try {  
+		try {
 			this.log.debug('Setting amperage for %s to %s',chargerId,value)
 			let response = await axios({
 					method: 'put',
@@ -210,7 +210,7 @@ wallboxAPI.prototype={
 	},
 
 	remoteAction: async function(token,chargerId,value){
-		try {  
+		try {
 			this.log.debug('Setting charging state for %s to %s',chargerId,value)
 			let action
 			switch(value){

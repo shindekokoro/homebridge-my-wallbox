@@ -34,7 +34,7 @@
 				"maximum": 24,
 				"required": true,
 				"default": 24
-			},	
+			},
 			"liveRefreshTimeout": {
 				"title": "Live Timeout",
 				"description": "Live polling duration in minutes. Default 2",
@@ -169,7 +169,7 @@
 				"cars[].carName",
 				"cars[].chargerName",
 				"cars[].kwH"
-					]			
+					]
 		},
 		{
 			"type": "flex",

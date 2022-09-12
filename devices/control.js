@@ -19,11 +19,11 @@ control.prototype={
 			currentAmps=device.maxAvailableCurrent
 		}
 		let controlService=new Service.Thermostat(type, device.id)
-    controlService 
+    controlService
       .setCharacteristic(Characteristic.Name, type)
       .setCharacteristic(Characteristic.StatusFault,Characteristic.StatusFault.NO_FAULT)
 			.setCharacteristic(Characteristic.TargetTemperature, currentAmps) //4.4444
-			.setCharacteristic(Characteristic.CurrentTemperature, currentAmps) 
+			.setCharacteristic(Characteristic.CurrentTemperature, currentAmps)
 			.setCharacteristic(Characteristic.TemperatureDisplayUnits,this.platform.useFahrenheit)
 			.setCharacteristic(Characteristic.TargetHeatingCoolingState,0) //off
 			.setCharacteristic(Characteristic.CurrentHeatingCoolingState,0)
@@ -36,7 +36,7 @@ control.prototype={
 		let step
 		if(this.platform.useFahrenheit){
 			min=-14.5
-			max=4.5 
+			max=4.5
 			step=.5
 			if(device.maxAvailableCurrent==48){max=9}
 		}
@@ -46,7 +46,7 @@ control.prototype={
 			step=1
 			if(device.maxAvailableCurrent==48){max=48}
 		}
-		
+
     this.log.info("Configured %s control for %s" , controlService.getCharacteristic(Characteristic.Name).value, device.name)
 		controlService
       .getCharacteristic(Characteristic.TargetHeatingCoolingState)
@@ -66,7 +66,7 @@ control.prototype={
       .on('get', this.getControlAmps.bind(this, controlService))
       .on('set', this.setControlAmps.bind(this, device, controlService))
 		controlService
-      .getCharacteristic(Characteristic.TemperatureDisplayUnits)	
+      .getCharacteristic(Characteristic.TemperatureDisplayUnits)
 			.on('get', this.getControlUnits.bind(this, controlService))
       .on('set', this.setControlUnits.bind(this, device, controlService))
   },
@@ -86,7 +86,7 @@ control.prototype={
 			}catch(error){
 				connected=209
 				this.log.error("failed connected state check")
-			}		
+			}
 			switch (connected){
 				case 161: //no car
 				case 209:
@@ -108,8 +108,8 @@ control.prototype={
 					//controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(!value)
 					callback()
 					break
-				case 178: //car unocked 
-				case 182:	
+				case 178: //car unlocked
+				case 182:
 				case 194:
 					this.log.debug('set amps %s',controlService.getCharacteristic(Characteristic.Name).value)
 					if(controlService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
@@ -121,6 +121,10 @@ control.prototype={
 								case 200:
 									controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(value)
 									break
+								case 403: // Wrong current status to start charging action
+									controlService.getCharacteristic(Characteristic.On).updateValue(value);
+									this.log.warn('Wrong status showing in HomeKit, updating value. %s', value)
+									break;
 								default:
 									controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(!value)
 									//controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(!value)
@@ -128,9 +132,9 @@ control.prototype={
 									this.log.debug(response.data)
 									break
 								}
-							})	
+							})
 						callback()
-					} 
+					}
 					break
 				default:
 					this.log.info('This opertation cannot be competed at this time')
@@ -150,7 +154,7 @@ control.prototype={
 			}catch(error){
 				connected=209
 				this.log.error("failed connected state check")
-			}	
+			}
 			switch (connected){
 				case 161: //no car
 				case 209:
@@ -172,8 +176,8 @@ control.prototype={
 					//controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(!value)
 					callback()
 					break
-				case 178: //car unocked 
-				case 182:	
+				case 178: //car unlocked
+				case 182:
 				case 194:
 					this.log.debug('toggle outlet state %s',controlService.getCharacteristic(Characteristic.Name).value)
 					if(controlService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
@@ -187,7 +191,11 @@ control.prototype={
 										controlService.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(value)
 										//controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(!value)
 										this.log.info('Charging resumed')
-										break
+										break;
+									case 403: // Wrong current status to start charging action
+										controlService.getCharacteristic(Characteristic.On).updateValue(value);
+										this.log.warn('Wrong status showing in HomeKit, updating value. %s', value)
+										break;
 									default:
 										controlService.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(!value)
 										//controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(!value)
@@ -195,8 +203,8 @@ control.prototype={
 										this.log.debug(response.data)
 										break
 								}
-							})	
-						} 
+							})
+						}
 						else {
 							this.wallboxapi.remoteAction(this.platform.token,device.id,'pause').then(response=>{
 								switch(response.status){
@@ -205,6 +213,10 @@ control.prototype={
 										//controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(!value)
 										this.log.info('Charging paused')
 										break
+									case 403: // Wrong current status to start charging action
+										controlService.getCharacteristic(Characteristic.On).updateValue(value);
+										this.log.warn('Wrong status showing in HomeKit, updating value. %s', value)
+										break;
 									default:
 										controlService.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(!value)
 										//controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(!value)
@@ -212,11 +224,15 @@ control.prototype={
 										this.log.debug(response.data)
 										break
 								}
-							})	
+							})
 						}
-					}	
+					}
 					callback()
 					break
+				case 14:
+					this.log.error('Charger %s is in error state', response.data.data.chargerData.name);
+					controlService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+					break;
 				default:
 					this.log.info('This opertation cannot be competed at this time')
 					controlService.getCharacteristic(Characteristic.On).updateValue(!value)
@@ -225,7 +241,7 @@ control.prototype={
 			}
 		})
   },
-			
+
 	setControlUnits(device, controlService, value, callback){
 		//this.platform.useFahrenheit=value
 		this.log.debug("change unit value")
@@ -240,7 +256,7 @@ control.prototype={
 			let currentValue=controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).value
 			callback(null, currentValue)
 		}
-	}, 
+	},
 
 	getControlAmps(controlService, callback){
 		if(controlService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
@@ -256,7 +272,7 @@ control.prototype={
 			//}
 			callback(null, currentValue)
 		}
-	}, 
+	},
 
 	getControlUnits(controlService, callback){
 		if(controlService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){

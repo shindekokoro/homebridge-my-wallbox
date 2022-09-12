@@ -13,7 +13,7 @@
 
 This plugin has been tested or verified against hardware model/types
 - Wallbox Pulsar
-- Only been tested to date with email based accounts, Google and Apple logins are not currently supported. 
+- Only been tested to date with email based accounts, Google and Apple logins are not currently supported.
 
 Other hardware models/types may still work with this plugin and any feedback on devices not listed is welcome.
 

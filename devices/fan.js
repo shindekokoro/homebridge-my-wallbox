@@ -15,7 +15,7 @@ fan.prototype={
 		let switchOn=false
 		if(device.statusDescription=="Charging"){switchOn=true}
 		let fanService=new Service.Fan(type, device.id)
-    fanService 
+    fanService
       .setCharacteristic(Characteristic.Name, type)
       .setCharacteristic(Characteristic.StatusFault,false)
 			.setCharacteristic(Characteristic.RotationSpeed, currentAmps)
@@ -50,7 +50,7 @@ fan.prototype={
 			}catch(error){
 				connected=209
 				this.log.error("failed connected state check")
-			}		
+			}
 			switch (connected){
 				case 161: //no car
 				case 209:
@@ -69,8 +69,8 @@ fan.prototype={
 					fanService.getCharacteristic(Characteristic.On).updateValue(!value)
 					callback()
 					break
-				case 178: //car unocked 
-				case 182:		
+				case 178: //car unlocked
+				case 182:
 				case 194:
 					this.log.debug('set amps %s',fanService.getCharacteristic(Characteristic.Name).value)
 					if(fanService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
@@ -82,15 +82,19 @@ fan.prototype={
 								case 200:
 									fanService.getCharacteristic(Characteristic.RotationSpeed).updateValue(value)
 									break
+								case 403: // Wrong current status to start charging action
+									fanService.getCharacteristic(Characteristic.On).updateValue(value);
+									this.log.warn('Wrong status showing in HomeKit, updating value. %s', value)
+									break;
 								default:
 									fanService.getCharacteristic(Characteristic.On).updateValue(!value)
 									this.log.info('Failed to change charging amps %s',response.data.title)
 									this.log.debug(response.data)
 									break
 								}
-							})	
+							})
 						callback()
-					} 
+					}
 					break
 				default:
 					this.log.info('This opertation cannot be competed at this time')
@@ -100,7 +104,7 @@ fan.prototype={
 			}
 		})
   },
-			
+
 	setFanState(device, fanService, value, callback){
 		this.wallboxapi.getChargerData(this.platform.token,device.id).then(response=>{
 			try{
@@ -128,8 +132,8 @@ fan.prototype={
 					fanService.getCharacteristic(Characteristic.On).updateValue(!value)
 					callback()
 					break
-				case 178: //car unocked 
-				case 182:	
+				case 178: //car unlocked
+				case 182:
 				case 194:
 					this.log.debug('toggle outlet state %s',fanService.getCharacteristic(Characteristic.Name).value)
 					if(fanService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
@@ -149,8 +153,8 @@ fan.prototype={
 										this.log.debug(response.data)
 										break
 								}
-							})	
-						} 
+							})
+						}
 						else {
 							this.wallboxapi.remoteAction(this.platform.token,device.id,'pause').then(response=>{
 								switch(response.status){
@@ -164,11 +168,15 @@ fan.prototype={
 										this.log.debug(response.data)
 										break
 								}
-							})	
+							})
 						}
-					}	
+					}
 					callback()
 					break
+				case 14:
+					this.log.error('Charger %s is in error state', response.data.data.chargerData.name);
+					fanService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
+					break;
 				default:
 					this.log.info('This opertation cannot be competed at this time')
 					fanService.getCharacteristic(Characteristic.On).updateValue(!value)
@@ -177,7 +185,7 @@ fan.prototype={
 			}
 		})
   },
-			
+
 	getFanState(fanService, callback){
 		if(fanService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
 			callback('error')
@@ -186,7 +194,7 @@ fan.prototype={
 			let currentValue=fanService.getCharacteristic(Characteristic.On).value
 			callback(null, currentValue)
 		}
-	}, 
+	},
 
 	getFanAmps(fanService, callback){
 		if(fanService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
@@ -196,7 +204,7 @@ fan.prototype={
 			let currentValue=fanService.getCharacteristic(Characteristic.RotationSpeed).value
 			callback(null, currentValue)
 		}
-	} 
+	}
 
 }
 
