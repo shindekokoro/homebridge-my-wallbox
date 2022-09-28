@@ -8,12 +8,10 @@ function battery (platform,log){
 
 battery.prototype={
 
-  createBatteryService(device){
-		let batteryStatus
-		let stateOfCharge=0
-		if(device.stateOfCharge)(stateOfCharge=device.stateOfCharge)
+  createBatteryService(device, stateOfCharge){
+		let batteryStatus = new Service.Battery(device.name, device.id)
 		this.log.debug("create battery service for %s",device.name )
-		batteryStatus=new Service.Battery(device.name, device.id)
+
     batteryStatus
 			.setCharacteristic(Characteristic.StatusLowBattery,Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL)
 			.setCharacteristic(Characteristic.BatteryLevel, stateOfCharge)
@@ -24,8 +22,13 @@ battery.prototype={
 
   configureBatteryService(batteryStatus){
     this.log.debug("Configured battery service for %s",batteryStatus.getCharacteristic(Characteristic.Name).value)
-    batteryStatus
-			.getCharacteristic(Characteristic.StatusLowBattery)
+		if(batteryStatus.getCharacteristic(Characteristic.BatteryLevel).value < 50){
+			batteryStatus
+				.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
+		} else{
+			batteryStatus
+				.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL)
+		}
 			//.on('get', this.getStatusLowBattery.bind(this, batteryStatus))
   },
 
