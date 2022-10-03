@@ -1,5 +1,18 @@
 # Changes
 
+## 1.1.0
+Update
+- Changed API endpoint for staus updates.
+-	Refactored code for status updates.
+- Added support for additional status messages.
+- Refactored code for battery status
+-	Added status descriptions to logging after being dropped from API reponse.
+- Bumped dependencies.
+-	Code cleanup.
+- Updated Readme
+- Fixed some typos in logging output.
+- Bug fixes for some error handeling.
+
 ## 1.0.15
 Update
 -Code Cleaned up (Extra spaces removed, NL add to EOF)
@@ -49,7 +62,7 @@ Update
 
 ## 1.0.7
 Update
--	Tied battery service option to having a car defined
+-	Tied battery service option to having a car defined.
 
 ## 1.0.6
 Update

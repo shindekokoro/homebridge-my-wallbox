@@ -1,10 +1,12 @@
 let packageJson=require('../package.json')
 let wallboxAPI=require('../wallboxapi')
+let enumeration=require('../enumerations')
 
 function control (platform,log,config){
 	this.log=log
 	this.platform=platform
 	this.wallboxapi=new wallboxAPI(this,log)
+	this.enumeration=enumeration
 }
 
 control.prototype={
@@ -13,7 +15,7 @@ control.prototype={
     this.log.debug('adding new control')
 		let currentAmps
 		if(this.platform.useFahrenheit){
-		currentAmps=((device.maxAvailableCurrent-32)*5/9).toFixed(2)
+		currentAmps=((device.maxAvailableCurrent-32+.01)*5/9).toFixed(2)
 		}
 		else{
 			currentAmps=device.maxAvailableCurrent
@@ -22,10 +24,10 @@ control.prototype={
     controlService
       .setCharacteristic(Characteristic.Name, type)
       .setCharacteristic(Characteristic.StatusFault,Characteristic.StatusFault.NO_FAULT)
-			.setCharacteristic(Characteristic.TargetTemperature, currentAmps) //4.4444
+			.setCharacteristic(Characteristic.TargetTemperature, currentAmps)
 			.setCharacteristic(Characteristic.CurrentTemperature, currentAmps)
 			.setCharacteristic(Characteristic.TemperatureDisplayUnits,this.platform.useFahrenheit)
-			.setCharacteristic(Characteristic.TargetHeatingCoolingState,0) //off
+			.setCharacteristic(Characteristic.TargetHeatingCoolingState,0)
 			.setCharacteristic(Characteristic.CurrentHeatingCoolingState,0)
     return controlService
   },
@@ -36,7 +38,7 @@ control.prototype={
 		let step
 		if(this.platform.useFahrenheit){
 			min=-14.5
-			max=4.5
+			max=4.5 //4.45
 			step=.5
 			if(device.maxAvailableCurrent==48){max=9}
 		}
@@ -59,9 +61,9 @@ control.prototype={
 		controlService
       .getCharacteristic(Characteristic.TargetTemperature)
 			.setProps({
-					minStep:step,
 					minValue:min,
-					maxValue:max
+					maxValue:max,
+					minStep:step
 			})
       .on('get', this.getControlAmps.bind(this, controlService))
       .on('set', this.setControlAmps.bind(this, device, controlService))
@@ -74,72 +76,73 @@ control.prototype={
 	setControlAmps(device, controlService, value, callback){
 		let amps
 		if(this.platform.useFahrenheit){
-			amps=(value*1.8+32).toFixed(2)
+			amps=(value*1.8+32+.01).toFixed(2)
 		}
 		else{
 			amps=value
 		}
 		this.wallboxapi.getChargerData(this.platform.token,device.id).then(response=>{
 			try{
-				connected=response.data.data.chargerData.status
-				this.log.debug('check connected state = %s',connected)
+				statusCode=response.data.data.chargerData.status
+				currentMode=this.enumeration.items.filter(result=>result.status == statusCode)[0].mode
+				this.log.debug('checking current mode = %s',currentMode)
 			}catch(error){
-				connected=209
-				this.log.error("failed connected state check")
+				currentMode='unknown'
+				this.log.error('failed current mode check')
 			}
-			switch (connected){
-				case 161: //no car
-				case 209:
-					this.log.info('Car must be connected for this operation')
-					controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(!value)
-					//controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(!value)
-					callback()
-					break
-				case 210: //car locked
-					this.log.info('Charger must be unlocked for this operation')
-					this.log.warn('Car Connected. Unlock charger to start session')
-					controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(!value)
-					//controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(!value)
-					callback()
-					break
-				case 181:
-					this.log.info('Waiting for a charge request')
-					controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(!value)
-					//controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(!value)
-					callback()
-					break
-				case 178: //car unlocked
-				case 182:
-				case 194:
-					this.log.debug('set amps %s',controlService.getCharacteristic(Characteristic.Name).value)
+			switch(currentMode){
+				case 'lockedMode':
+					switch(statusCode){
+						case 209:
+							this.log.info('Car must be connected for this operation')
+							controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(!value)
+							controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(!value)
+							callback()
+							break
+						case 210:
+							this.log.info('Charger must be unlocked for this operation')
+							this.log.warn('Car Connected. Unlock charger to start session')
+							controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(!value)
+							controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(!value)
+							callback()
+							break
+					}
+				case 'standbyMode':
+				case 'chargingMode':
+					this.log.debug('set amps to %s',amps)
 					if(controlService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
 						callback('error')
 					}
 					else{
-						this.wallboxapi.setAmps(this.platform.token,device.id,value).then(response=>{
+						this.wallboxapi.setAmps(this.platform.token,device.id,amps).then(response=>{
 							switch(response.status){
 								case 200:
 									controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(value)
+									controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(value)
 									break
-								case 403: // Wrong current status to start charging action
-									controlService.getCharacteristic(Characteristic.On).updateValue(value);
-									this.log.warn('Wrong status showing in HomeKit, updating value. %s', value)
-									break;
 								default:
 									controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(!value)
-									//controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(!value)
+									controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(!value)
 									this.log.info('Failed to change charging amps %s',response.data.title)
 									this.log.debug(response.data)
 									break
 								}
 							})
-						callback()
 					}
+					callback()
+					break
+				case 'firmwareUpdate':
+				case 'errorMode':
+					this.log.info('This opertation cannot be completed at this time, status %s',statusCode)
+					this.log.error('the charger %s has a fault condition with code=%s', device.name,statusCode)
+					controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(!value)
+					controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(!value)
+					callback()
 					break
 				default:
-					this.log.info('This opertation cannot be competed at this time')
+					this.log.info('This opertation cannot be completed at this time, status %s',statusCode)
 					controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(!value)
-					//controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(!value)
+					controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(!value)
 					callback()
 					break
 			}
@@ -149,93 +152,86 @@ control.prototype={
 	setControlState(device, controlService, value, callback){
 		this.wallboxapi.getChargerData(this.platform.token,device.id).then(response=>{
 			try{
-				connected=response.data.data.chargerData.status
-				this.log.debug('check connected state = %s',connected)
+				statusCode=response.data.data.chargerData.status
+				currentMode=this.enumeration.items.filter(result=>result.status == statusCode)[0].mode
+				this.log.debug('checking current mode = %s',currentMode)
 			}catch(error){
-				connected=209
-				this.log.error("failed connected state check")
+				currentMode='unknown'
+				this.log.error('failed current mode check')
 			}
-			switch (connected){
-				case 161: //no car
-				case 209:
-					this.log.info('Car must be connected for this operation')
+			switch(currentMode){
+				case 'lockedMode':
+				case 'readyMode':
+					if(statusCode==210){
+						this.log.info('Charger must be unlocked for this operation')
+						this.log.warn('Car Connected. Unlock charger to start session')
+					}
+					else{
+						this.log.info('Car must be connected for this operation')
+					}
+					controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(!value)
 					controlService.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(!value)
-					//controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(!value)
 					callback()
 					break
-				case 210: //car locked
-					this.log.info('Charger must be unlocked for this operation')
-					this.log.warn('Car Connected. Unlock charger to start session')
-					controlService.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(!value)
-					//controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(!value)
-					callback()
-					break
-				case 181:
+				case 'standbyMode':
 					this.log.info('Waiting for a charge request')
-					controlService.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(!value)
-					//controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(!value)
-					callback()
-					break
-				case 178: //car unlocked
-				case 182:
-				case 194:
-					this.log.debug('toggle outlet state %s',controlService.getCharacteristic(Characteristic.Name).value)
 					if(controlService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
 						callback('error')
 					}
 					else{
-						if(value){
-							this.wallboxapi.remoteAction(this.platform.token,device.id,'start').then(response=>{
-								switch(response.status){
-									case 200:
-										controlService.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(value)
-										//controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(!value)
-										this.log.info('Charging resumed')
-										break;
-									case 403: // Wrong current status to start charging action
-										controlService.getCharacteristic(Characteristic.On).updateValue(value);
-										this.log.warn('Wrong status showing in HomeKit, updating value. %s', value)
-										break;
-									default:
-										controlService.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(!value)
-										//controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(!value)
-										this.log.info('Failed to start charging')
-										this.log.debug(response.data)
-										break
-								}
-							})
-						}
-						else {
-							this.wallboxapi.remoteAction(this.platform.token,device.id,'pause').then(response=>{
-								switch(response.status){
-									case 200:
-										controlService.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(value)
-										//controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(!value)
-										this.log.info('Charging paused')
-										break
-									case 403: // Wrong current status to start charging action
-										controlService.getCharacteristic(Characteristic.On).updateValue(value);
-										this.log.warn('Wrong status showing in HomeKit, updating value. %s', value)
-										break;
-									default:
-										controlService.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(!value)
-										//controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(!value)
-										this.log.info('Failed to stop charging')
-										this.log.debug(response.data)
-										break
-								}
-							})
-						}
+						this.wallboxapi.remoteAction(this.platform.token,device.id,'resume').then(response=>{
+							switch(response.status){
+								case 200:
+									controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(value)
+									controlService.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(value)
+									this.log.info('Charging resumed')
+									break
+								default:
+									controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(!value)
+									controlService.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(!value)
+									this.log.info('Failed to start charging')
+									this.log.debug(response.data)
+									break
+							}
+						})
 					}
 					callback()
 					break
-				case 14:
-					this.log.error('Charger %s is in error state', response.data.data.chargerData.name);
-					controlService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT);
-					break;
+				case 'chargingMode':
+					this.log.debug('toggle control %s',controlService.getCharacteristic(Characteristic.Name).value)
+					if(controlService.getCharacteristic(Characteristic.StatusFault).value==Characteristic.StatusFault.GENERAL_FAULT){
+						callback('error')
+					}
+					else{
+						this.wallboxapi.remoteAction(this.platform.token,device.id,'pause').then(response=>{
+							switch(response.status){
+								case 200:
+									controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(value)
+									controlService.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(value)
+									this.log.info('Charging paused')
+									break
+								default:
+									controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(!value)
+									controlService.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(!value)
+									this.log.info('Failed to stop charging')
+									this.log.debug(response.data)
+									break
+							}
+						})
+					}
+					callback()
+					break
+				case 'firmwareUpdate':
+				case 'errorMode':
+					this.log.info('This opertation cannot be completed at this time, status %s',statusCode)
+					this.log.error('the charger %s has a fault condition with code=%s', device.name,statusCode)
+					controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(!value)
+					controlService.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(!value)
+					callback()
 				default:
-					this.log.info('This opertation cannot be competed at this time')
-					controlService.getCharacteristic(Characteristic.On).updateValue(!value)
+					this.log.info('This opertation cannot be completed at this time, status %s',statusCode)
+					controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(!value)
+					controlService.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(!value)
 					callback()
 					break
 			}
@@ -264,12 +260,6 @@ control.prototype={
 		}
 		else{
 			let currentValue=controlService.getCharacteristic(Characteristic.CurrentTemperature).value
-			//if(this.platform.useFahrenheit){
-				//if(currentValue>4.5){currentValue=4.44444}
-			//}
-			//else{
-				//if(currentValue>40){currentValue=40}
-			//}
 			callback(null, currentValue)
 		}
 	},

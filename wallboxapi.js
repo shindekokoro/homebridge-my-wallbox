@@ -123,10 +123,31 @@ wallboxAPI.prototype={
 		}catch(err) {this.log.error('Error retrieving charger groups %s', err)}
 	},
 
+	getChargerStatus: async function(token,chargerId){
+		try {
+			this.log.debug('Retrieving charger status')
+			let response = await axios({
+					method: 'get',
+					baseURL:endpoint,
+					url: `/chargers/status/${chargerId}`,
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': 'Bearer '+token
+					},
+					responseType: 'json'
+			}).catch(err=>{
+				this.log.debug(JSON.stringify(err,null,2))
+				this.log.error('Error getting charger status %s', err.message)
+				if(err.response){this.log.warn(JSON.stringify(err.response.data,null,2))}
+			})
+			//if(response){this.log.debug('get charger status response',JSON.stringify(response.data,null,2))}
+			return response
+		}catch(err) {this.log.error('Error retrieving charger status %s', err)}
+	},
 
 	getChargerData: async function(token,chargerId){
 		try {
-			this.log.debug('Retrieving charger info')
+			this.log.debug('Retrieving charger data')
 			let response = await axios({
 					method: 'get',
 					baseURL:endpoint,
@@ -138,12 +159,12 @@ wallboxAPI.prototype={
 					responseType: 'json'
 			}).catch(err=>{
 				this.log.debug(JSON.stringify(err,null,2))
-				this.log.error('Error getting charger %s', err.message)
+				this.log.error('Error getting charger data %s', err.message)
 				if(err.response){this.log.warn(JSON.stringify(err.response.data,null,2))}
 			})
-			//if(response){this.log.debug('get charger data response',JSON.stringify(response.data.data.chargerData,null,2))}
+			if(response){this.log.debug('get charger data response',JSON.stringify(response.data.data.chargerData,null,2))}
 			return response
-		}catch(err) {this.log.error('Error retrieving charger %s', err)}
+		}catch(err) {this.log.error('Error retrieving charger data %s', err)}
 	},
 
 	getChargerConfig: async function(token,chargerId){
@@ -214,6 +235,7 @@ wallboxAPI.prototype={
 				if(err.response){this.log.warn(JSON.stringify(err.response.data,null,2))}
 			})
 			if(response){this.log.debug('put setAmps response',response.status)}
+			if(response){this.log.debug('put setAmps response {maxChargingCurrent:%s}',JSON.stringify(response.data.data.chargerData.maxChargingCurrent,null,2))}
 			return response
 		}catch(err) {this.log.error('Error setting amperage %s', err)}
 	},
@@ -223,6 +245,7 @@ wallboxAPI.prototype={
 			this.log.debug('Setting charging state for %s to %s',chargerId,value)
 			let action
 			switch(value){
+				case "resume":
 				case "start":
 					action=1
 					break

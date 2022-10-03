@@ -5,9 +5,8 @@ let battery=require('./devices/battery')
 let temperature = require('./devices/temperature')
 let basicSwitch=require('./devices/switch')
 let outlet=require('./devices/outlet')
-let light=require('./devices/light')
-let fan=require('./devices/fan')
 let control=require('./devices/control')
+let enumeration=require('./enumerations')
 
 class wallboxPlatform {
 
@@ -18,9 +17,8 @@ class wallboxPlatform {
     this.temperature = new temperature(this, log);
 		this.basicSwitch=new basicSwitch(this, log, config)
 		this.outlet=new outlet(this, log, config)
-		this.light=new light(this, log, config)
-		this.fan=new fan(this, log, config)
 		this.control=new control(this, log, config)
+		this.enumeration=enumeration
 
     this.log=log
     this.config=config
@@ -34,7 +32,7 @@ class wallboxPlatform {
 		this.lastInterval
 		this.apiCount=0
 		this.liveUpdate=false
-		this.showBattery=config.showBattery
+		this.showBattery=false
 		this.showControls=config.showControls
 		this.useFahrenheit=config.useFahrenheit || true
 		this.id
@@ -48,8 +46,8 @@ class wallboxPlatform {
 		this.accessories=[]
 		this.amps=[]
 		this.endTime=[]
-		if(this.showControls==7){
-			this.showControls=3
+		if(this.showControls==8){
+			this.showControls=4
 			this.useFahrenheit=false
 		}
 		if(config.cars){this.showBattery=true}
@@ -120,7 +118,6 @@ class wallboxPlatform {
 				accessConfig.chargers.forEach((charger)=>{
 					//loop each charger
 					this.wallboxapi.getChargerData(this.token,charger).then(response=>{
-						this.log.debug(response)
 						let chargerData=response.data.data.chargerData
 						let uuid=UUIDGen.generate(chargerData.uid)
 						if(this.accessories[uuid]){
@@ -132,15 +129,14 @@ class wallboxPlatform {
 
 						let lockAccessory=this.lockMechanism.createLockAccessory(chargerData,uuid)
 						let lockService=this.lockMechanism.createLockService(chargerData)
-            this.lockMechanism.configureLockService(chargerData, lockService)
-            lockAccessory.addService(lockService)
-
             let temperatureService = this.temperature.createTemperatureService(chargerData);
             this.temperature.configureTemperatureService(temperatureService,this.stateOfCharge);
             lockAccessory.addService(temperatureService)
+						this.lockMechanism.configureLockService(chargerData, lockService)
+						lockAccessory.addService(lockService)
 
 						if(this.showBattery){
-							let batteryService=this.battery.createBatteryService(chargerData,this.stateOfCharge)
+							let batteryService=this.battery.createBatteryService(chargerData)
 							this.battery.configureBatteryService(batteryService)
 							lockAccessory.getService(Service.LockMechanism).addLinkedService(batteryService)
 							lockAccessory.addService(batteryService)
@@ -152,23 +148,11 @@ class wallboxPlatform {
 							lockAccessory.getService(Service.LockMechanism).addLinkedService(outletService)
 							lockAccessory.addService(outletService)
 						}
-						if(this.showControls==6 || this.showControls==4){
-							let fanService=this.fan.createFanService(chargerData,'Start/Stop & Amps')
-							this.fan.configureFanService(chargerData, fanService)
-							lockAccessory.getService(Service.LockMechanism).addLinkedService(fanService)
-							lockAccessory.addService(fanService)
-						}
 						if(this.showControls==3 || this.showControls==4){
 							let controlService=this.control.createControlService(chargerData,'Amps')
 							this.control.configureControlService(chargerData, controlService)
 							lockAccessory.getService(Service.LockMechanism).addLinkedService(controlService)
 							lockAccessory.addService(controlService)
-						}
-						if(this.showControls==2 || this.showControls==4){
-							let lightService=this.light.createLightService(chargerData,'Start/Stop & Amps')
-							this.light.configureLightService(chargerData, lightService)
-							lockAccessory.getService(Service.LockMechanism).addLinkedService(lightService)
-							lockAccessory.addService(lightService)
 						}
 						if(this.showControls==1 || this.showControls==4){
 							let switchService=this.basicSwitch.createSwitchService(chargerData,'Start/Pause')
@@ -179,8 +163,7 @@ class wallboxPlatform {
 						this.accessories[uuid]=lockAccessory
 						this.api.registerPlatformAccessories(PluginName, PlatformName, [lockAccessory])
 						this.setChargerRefresh(chargerData)
-						//this.getStatus(chargerData.id)
-						this.updateStatus(response)
+						this.getStatus(chargerData.id)
 					}).catch(err=>{this.log.error('Failed to get info for build', err)})
 				})
 			})
@@ -238,236 +221,176 @@ class wallboxPlatform {
 		this.lastInterval=interval
 	}
 
-	calcBattery(batteryService){
+	calcBattery(batteryService,energyAdded,chargingTime){
 		if(this.cars){
 			let car=this.cars.filter(charger=>(charger.chargerName.includes(batteryService.getCharacteristic(Characteristic.Name).value)))
 			this.batterySize=car[0].kwH
 		}
-		this.amperage=this.amps[batteryService.subtype]
-		let kwh=this.voltage*this.amperage/1000
-		let fullCharge=(this.batterySize)/(kwh)
-		let x=new Date(0,0)
-		x.setSeconds(fullCharge*60*60)
-		let fullChargeTime=x.toTimeString().slice(0,8)
-		//this.log.info('Charging time for 100% charge ',fullChargeTime)
-		let startTime= Date.now()
-		let endTime=setInterval(()=>{
-				try{
-						let runningTime=Date.now()-startTime
-						let chargeAdded=((this.amperage*this.voltage/1000)*(runningTime/60/60/1000)).toFixed(2)
-						let percentAdded=(chargeAdded/this.batterySize*100).toFixed(2)
-						//this.log.warn('Charge added %s kwh, %s%',chargeAdded,percentAdded)
-            percentAdded += this.stateOfCharge;
-						batteryService.setCharacteristic(Characteristic.BatteryLevel,percentAdded)
-						if(percentAdded>100){
-							clearInterval(endTime)
-					}
-				}catch(err){this.log.error('Failed', err)}
-		},1*60*1000)
-		this.endTime[batteryService.subtype]=endTime
+		else{
+			this.batterySize=80
+		}
+		let hours = Math.floor(chargingTime / 60 / 60)
+		let minutes = Math.floor(chargingTime / 60) - (hours * 60)
+		let seconds = chargingTime % 60
+		let percentAdded=Math.round(energyAdded/this.batterySize*100)
+		this.log.debug('Charging time %s hours %s minutes, charge added %s kWh, %s%',hours,minutes,energyAdded,percentAdded)
+		return percentAdded
 	}
 
 	async	getStatus(id){
 	try{
-		this.wallboxapi.getChargerData(this.token,id).then(response=>{
+		this.wallboxapi.getChargerStatus(this.token,id).then(response=>{
 			if(response){
-				this.updateStatus(response)
-				this.log.debug('Refreshed charger with status=%s',response.data.data.chargerData.status)
+				this.updateStatus(response.data)
 			}
 		}).catch(err=>{this.log.error(err)})
 		}catch(err) {this.log.error('Error updating status %s', err)}
 	}
 
-	async updateStatus(response){
+	async updateStatus(charger){
 		try{
-			let chargerData=response.data.data.chargerData
-			this.log.debug('Updating charger ID %s',chargerData.id)
-			let uuid=UUIDGen.generate(chargerData.uid)
+			let chargerID=charger.config_data.charger_id
+			let chargerUID=charger.config_data.uid
+			let locked=charger.config_data.locked
+			let maxAmps=charger.config_data.max_charging_current
+			let chargerName=charger.name
+			let statusID=charger.status_id
+			let added_kWh=charger.added_energy
+			let chargingTime=charger.charging_time
+
+			this.log.debug('Updating charger ID %s',chargerID)
+			let uuid=UUIDGen.generate(chargerUID)
 			let lockAccessory=this.accessories[uuid]
 			let controlService
-			let lightService
-			let fanService
 			let switchService
 			let outletService
 			let lockService
 			let batteryService
-			lockService=lockAccessory.getServiceById(Service.LockMechanism, chargerData.id)
-			if(this.showBattery){batteryService=lockAccessory.getServiceById(Service.Battery, chargerData.id)}
-			if(this.showControls==6 || this.showControls==4){fanService=lockAccessory.getServiceById(Service.Fan, chargerData.id)}
-			if(this.showControls==5 || this.showControls==4){outletService=lockAccessory.getServiceById(Service.Outlet, chargerData.id)}
-			if(this.showControls==3 || this.showControls==4){controlService=lockAccessory.getServiceById(Service.Thermostat, chargerData.id)}
-			if(this.showControls==2 || this.showControls==4){lightService=lockAccessory.getServiceById(Service.Lightbulb, chargerData.id)}
-			if(this.showControls==1 || this.showControls==4){switchService=lockAccessory.getServiceById(Service.Switch, chargerData.id)}
-			/*
-			staus to statusDescription
-			161: "Ready: Plug your car in"
-			178: "Waiting: Waiting for car request from your car"
-			181: "Connected: Waiting for car demand"
-			182: "Paused: Press Play to resume charging"
-			194: "Charging: Plugged and running"
-			209: "Locked: Unlock to start session" no car
-			210: "Locked: Unlock to start session" car connected
-			4: "Complete"
-			5: "Offline"
-			*/
-			switch(chargerData.status){
-				case 161: //'Ready':
+			let statusInfo
+			lockService=lockAccessory.getServiceById(Service.LockMechanism, chargerID)
+			if(this.showBattery){batteryService=lockAccessory.getServiceById(Service.Battery, chargerID)}
+			if(this.showControls==5 || this.showControls==4){outletService=lockAccessory.getServiceById(Service.Outlet, chargerID)}
+			if(this.showControls==3 || this.showControls==4){controlService=lockAccessory.getServiceById(Service.Thermostat, chargerID)}
+			if(this.showControls==1 || this.showControls==4){switchService=lockAccessory.getServiceById(Service.Switch, chargerID)}
+
+			/****
+			enumerations will contain list of known status and descriptions
+			text is base on web, altText is based on app
+			statusDescipton is base on observered response or past API statusDescription
+			****/
+
+			try {
+				statusInfo=this.enumeration.items.filter(result=>result.status == statusID)[0]
+				this.log.debug('Refreshed charger with status=%s %s - %s. %s.',statusID,statusInfo.statusDescription,statusInfo.text,statusInfo.altText)
+			}catch(err) {
+				statusInfo.mode="unknown"
+			}
+			switch(statusInfo.mode){
+				case 'lockedMode':
+				case 'readyMode':
 					lockService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
-					lockService.getCharacteristic(Characteristic.OutletInUse).updateValue(false)
-					lockService.getCharacteristic(Characteristic.LockCurrentState).updateValue(chargerData.locked)
-					lockService.getCharacteristic(Characteristic.LockTargetState).updateValue(chargerData.locked)
-					if(this.showControls==6 || this.showControls==4){fanService.getCharacteristic(Characteristic.On).updateValue(false)}
+					if(charger.statusID==210){
+						lockService.getCharacteristic(Characteristic.OutletInUse).updateValue(true)
+					}
+					else{
+						lockService.getCharacteristic(Characteristic.OutletInUse).updateValue(false)
+					}
+					lockService.getCharacteristic(Characteristic.LockCurrentState).updateValue(locked)
+					lockService.getCharacteristic(Characteristic.LockTargetState).updateValue(locked)
 					if(this.showControls==5 || this.showControls==4){outletService.getCharacteristic(Characteristic.On).updateValue(false)}
 					if(this.showControls==3 || this.showControls==4){
 						controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(false)
+						controlService.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(false)
 						if(this.useFahrenheit){
-							controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(((chargerData.maxChargingCurrent-32)*5/9).toFixed(2))
+							controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(((maxAmps-32+.01)*5/9).toFixed(2))
+							controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(((maxAmps-32+.01)*5/9).toFixed(2))
 						}
 						else{
-							controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(chargerData.maxChargingCurrent)
+							controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(maxAmps)
+							controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(maxAmps)
 						}
 					}
-					if(this.showControls==2 || this.showControls==4){lightService.getCharacteristic(Characteristic.On).updateValue(false)}
 					if(this.showControls==1 || this.showControls==4){switchService.getCharacteristic(Characteristic.On).updateValue(false)}
-					if(this.showBattery){batteryService.getCharacteristic(Characteristic.ChargingState).updateValue(Characteristic.ChargingState.NOT_CHARGING)}
+					if(this.showBattery){
+						batteryService.getCharacteristic(Characteristic.ChargingState).updateValue(Characteristic.ChargingState.NOT_CHARGING)
+						batteryService.getCharacteristic(Characteristic.BatteryLevel).updateValue(this.calcBattery(batteryService,added_kWh,chargingTime))
+					}
 					break
-				case 194: //'Charging':
+				case 'chargingMode':
 					lockService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
 					lockService.getCharacteristic(Characteristic.OutletInUse).updateValue(true)
-					lockService.getCharacteristic(Characteristic.LockCurrentState).updateValue(chargerData.locked)
-					lockService.getCharacteristic(Characteristic.LockTargetState).updateValue(chargerData.locked)
-					if(this.showControls==6 || this.showControls==4){fanService.getCharacteristic(Characteristic.On).updateValue(true)}
+					lockService.getCharacteristic(Characteristic.LockCurrentState).updateValue(locked)
+					lockService.getCharacteristic(Characteristic.LockTargetState).updateValue(locked)
 					if(this.showControls==5 || this.showControls==4){outletService.getCharacteristic(Characteristic.On).updateValue(true)}
 					if(this.showControls==3 || this.showControls==4){
-						controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(false)
+						controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(true)
+						controlService.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(true)
 						if(this.useFahrenheit){
-							controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(((chargerData.maxChargingCurrent-32)*5/9).toFixed(2))
+							controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(((maxAmps-32+.01)*5/9).toFixed(2))
+							controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(((maxAmps-32+.01)*5/9).toFixed(2))
 						}
 						else{
-							controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(chargerData.maxChargingCurrent)
+							controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(maxAmps)
+							controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(maxAmps)
 						}
-					}if(this.showControls==2 || this.showControls==4){lightService.getCharacteristic(Characteristic.On).updateValue(true)}
+					}
 					if(this.showControls==1 || this.showControls==4){switchService.getCharacteristic(Characteristic.On).updateValue(true)}
-					if(this.showBattery){batteryService.getCharacteristic(Characteristic.ChargingState).updateValue(Characteristic.ChargingState.CHARGING)}
-					if(this.showBattery){this.calcBattery(batteryService)}
+					if(this.showBattery){
+						batteryService.getCharacteristic(Characteristic.ChargingState).updateValue(Characteristic.ChargingState.CHARGING)
+						batteryService.getCharacteristic(Characteristic.BatteryLevel).updateValue(this.calcBattery(batteryService,added_kWh,chargingTime))
+					}
 					break
-				case 181: //'Waiting for car demand':
+				case 'standbyMode':
 					lockService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
 					lockService.getCharacteristic(Characteristic.OutletInUse).updateValue(true)
-					lockService.getCharacteristic(Characteristic.LockCurrentState).updateValue(chargerData.locked)
-					lockService.getCharacteristic(Characteristic.LockTargetState).updateValue(chargerData.locked)
-					if(this.showControls==6 || this.showControls==4){fanService.getCharacteristic(Characteristic.On).updateValue(true)}
-					if(this.showControls==5 || this.showControls==4){outletService.getCharacteristic(Characteristic.On).updateValue(true)}
-					if(this.showControls==3 || this.showControls==4){
-						controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(false)
-						if(this.useFahrenheit){
-							controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(((chargerData.maxChargingCurrent-32)*5/9).toFixed(2))
-						}
-						else{
-							controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(chargerData.maxChargingCurrent)
-						}
-					}if(this.showControls==2 || this.showControls==4){lightService.getCharacteristic(Characteristic.On).updateValue(true)}
-					if(this.showControls==1 || this.showControls==4){switchService.getCharacteristic(Characteristic.On).updateValue(true)}
-					if(this.showBattery){batteryService.getCharacteristic(Characteristic.ChargingState).updateValue(Characteristic.ChargingState.NOT_CHARGING)}
-					if(this.showBattery){this.calcBattery(batteryService)}
-					break
-        case 178: //'Paused':
-        case 182:
-				lockService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
-				lockService.getCharacteristic(Characteristic.OutletInUse).updateValue(true)
-				lockService.getCharacteristic(Characteristic.LockCurrentState).updateValue(chargerData.locked)
-				lockService.getCharacteristic(Characteristic.LockTargetState).updateValue(chargerData.locked)
-				if(this.showControls==6 || this.showControls==4){fanService.getCharacteristic(Characteristic.On).updateValue(false)}
-				if(this.showControls==5 || this.showControls==4){outletService.getCharacteristic(Characteristic.On).updateValue(false)}
-				if(this.showControls==3 || this.showControls==4){
-					controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(false)
-					if(this.useFahrenheit){
-						controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(((chargerData.maxChargingCurrent-32)*5/9).toFixed(2))
-					}
-					else{
-						controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(chargerData.maxChargingCurrent)
-					}
-				}if(this.showControls==2 || this.showControls==4){lightService.getCharacteristic(Characteristic.On).updateValue(false)}
-				if(this.showControls==1 || this.showControls==4){switchService.getCharacteristic(Characteristic.On).updateValue(false)}
-				if(this.showBattery){batteryService.getCharacteristic(Characteristic.ChargingState).updateValue(Characteristic.ChargingState.NOT_CHARGING)}
-				if(this.showBattery){this.calcBattery(batteryService)}
-				break
-			case 209: //'Locked':
-				lockService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
-				lockService.getCharacteristic(Characteristic.OutletInUse).updateValue(false)
-				lockService.getCharacteristic(Characteristic.LockCurrentState).updateValue(chargerData.locked)
-				lockService.getCharacteristic(Characteristic.LockTargetState).updateValue(chargerData.locked)
-				if(this.showControls==6 || this.showControls==4){fanService.getCharacteristic(Characteristic.On).updateValue(false)}
-				if(this.showControls==5 || this.showControls==4){outletService.getCharacteristic(Characteristic.On).updateValue(false)}
-				if(this.showControls==3 || this.showControls==4){
-					controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(false)
-					if(this.useFahrenheit){
-						controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(((chargerData.maxChargingCurrent-32)*5/9).toFixed(2))
-					}
-					else{
-						controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(chargerData.maxChargingCurrent)
-					}
-				}if(this.showControls==2 || this.showControls==4){lightService.getCharacteristic(Characteristic.On).updateValue(false)}
-				if(this.showControls==1 || this.showControls==4){switchService.getCharacteristic(Characteristic.On).updateValue(false)}
-				if(this.showBattery){batteryService.getCharacteristic(Characteristic.ChargingState).updateValue(Characteristic.ChargingState.NOT_CHARGING)}
-				break
-			case 210: //'Locked Car connected':
-				lockService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
-				lockService.getCharacteristic(Characteristic.OutletInUse).updateValue(true)
-				lockService.getCharacteristic(Characteristic.LockCurrentState).updateValue(chargerData.locked)
-				lockService.getCharacteristic(Characteristic.LockTargetState).updateValue(chargerData.locked)
-				if(this.showControls==6 || this.showControls==4){fanService.getCharacteristic(Characteristic.On).updateValue(false)}
-				if(this.showControls==5 || this.showControls==4){outletService.getCharacteristic(Characteristic.On).updateValue(false)}
-				if(this.showControls==3 || this.showControls==4){
-					controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(false)
-					if(this.useFahrenheit){
-						controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(((chargerData.maxChargingCurrent-32)*5/9).toFixed(2))
-					}
-					else{
-						controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(chargerData.maxChargingCurrent)
-					}
-				}if(this.showControls==2 || this.showControls==4){lightService.getCharacteristic(Characteristic.On).updateValue(false)}
-				if(this.showControls==1 || this.showControls==4){switchService.getCharacteristic(Characteristic.On).updateValue(false)}
-				if(this.showBattery){batteryService.getCharacteristic(Characteristic.ChargingState).updateValue(Characteristic.ChargingState.NOT_CHARGING)}
-				break
-				case 4: //'Complete':
-					lockService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
-					lockService.getCharacteristic(Characteristic.OutletInUse).updateValue(true)
-					lockService.getCharacteristic(Characteristic.LockCurrentState).updateValue(chargerData.locked)
-					lockService.getCharacteristic(Characteristic.LockTargetState).updateValue(chargerData.locked)
-					if(this.showControls==6 || this.showControls==4){fanService.getCharacteristic(Characteristic.On).updateValue(false)}
+					lockService.getCharacteristic(Characteristic.LockCurrentState).updateValue(locked)
+					lockService.getCharacteristic(Characteristic.LockTargetState).updateValue(locked)
 					if(this.showControls==5 || this.showControls==4){outletService.getCharacteristic(Characteristic.On).updateValue(false)}
 					if(this.showControls==3 || this.showControls==4){
 						controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(false)
+						controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(false)
 						if(this.useFahrenheit){
-							controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(((chargerData.maxChargingCurrent-32)*5/9).toFixed(2))
+							controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(((maxAmps-32+.01)*5/9).toFixed(2))
+							controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(((maxAmps-32+.01)*5/9).toFixed(2))
 						}
 						else{
-							controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(chargerData.maxChargingCurrent)
+							controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(maxAmps)
+							controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(maxAmps)
 						}
-					}if(this.showControls==2 || this.showControls==4){lightService.getCharacteristic(Characteristic.On).updateValue(false)}
+					}
 					if(this.showControls==1 || this.showControls==4){switchService.getCharacteristic(Characteristic.On).updateValue(false)}
-					if(this.showBattery){batteryService.getCharacteristic(Characteristic.ChargingState).updateValue(Characteristic.ChargingState.NOT_CHARGING)}
-					if(this.showBattery){batteryService.getCharacteristic(Characteristic.BatteryLevel).updateValue(this.stateOfCharge)}
-					this.log.info('%s completed at %s',chargerData.name, new Date().toLocaleString())
+					if(this.showBattery){
+						batteryService.getCharacteristic(Characteristic.ChargingState).updateValue(Characteristic.ChargingState.NOT_CHARGING)
+						batteryService.getCharacteristic(Characteristic.BatteryLevel).updateValue(this.calcBattery(batteryService,added_kWh,chargingTime))
+					}
+					if(statusID==4){
+						this.log.info('%s completed at %s',chargerName, new Date().toLocaleString())
+					}
 					break
-				case 5: //Offline':
+				case 'firmwareUpdate':
+				case 'errorMode':
 					lockService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT)
-					this.log.warn('%s disconnected at %s! This will show as non-responding in Homekit until the connection is restored.',chargerData.name, new Date(chargerData.lastConnection*1000).toLocaleString())
+					switch(statusID){
+						case 166: //Updating':
+							this.log.Info('%s updating...',chargerName)
+							break
+						case 14: //error':
+						case 15:
+							this.log.error('%s threw an error at %s!',chargerName, Date().toLocaleString())
+							break
+						case 5: //Offline':
+							this.log.warn('%s charger offline at %s! This will show as non-responding in Homekit until the connection is restored.',chargerName, new Date(charger.config_data.sync_timestamp*1000).toLocaleString())
+							break
+						case 0: //'Dissconnected':
+							this.log.warn('%s disconnected at %s! This will show as non-responding in Homekit until the connection is restored.',chargerName, new Date(charger.config_data.sync_timestamp*1000).toLocaleString())
+							break
+					}
 					break
-				case 0: //'Dissconnected':
-					lockService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT)
-					this.log.warn('%s disconnected at %s! This will show as non-responding in Homekit until the connection is restored.',chargerData.name, new Date(chargerData.lastConnection*1000).toLocaleString())
-					break
-        case 14:
-          lockService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT)
-          this.log.error('Charger %s is in error state', chargerData.name);
-          break;
 				default:
-					this.log.warn('Unknown device message received: %s: %s',chargerData.status, chargerData.statusDescription)
+					this.log.warn('Unknown device status received: %s: %s',statusID)
 					break
 			}
-			return chargerData
+			return charger
 		}catch(err) {this.log.error('Error updating status %s', err)}
 	}
 
