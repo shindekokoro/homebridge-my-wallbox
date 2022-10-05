@@ -73,6 +73,16 @@ control.prototype={
       .on('set', this.setControlUnits.bind(this, device, controlService))
   },
 
+	updateControlService(controlService, controlState, controlLimit){
+		if(!controlService){ return; }
+		this.log.info("Updated %s control" , controlService.getCharacteristic(Characteristic.Name).value)
+		controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(controlState)
+		controlService.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(controlState)
+		controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(controlLimit)
+		controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(controlLimit)
+
+	},
+
 	setControlAmps(device, controlService, value, callback){
 		let amps
 		if(this.platform.useFahrenheit){

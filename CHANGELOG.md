@@ -1,17 +1,22 @@
 # Changes
 
+## 1.1.1
+Update
+- Added update__Service functions to control devices
+- Cleanup code
+
 ## 1.1.0
 Update
-- Changed API endpoint for staus updates.
+- Changed API endpoint for status updates.
 -	Refactored code for status updates.
 - Added support for additional status messages.
 - Refactored code for battery status
--	Added status descriptions to logging after being dropped from API reponse.
+-	Added status descriptions to logging after being dropped from API response.
 - Bumped dependencies.
 -	Code cleanup.
 - Updated Readme
 - Fixed some typos in logging output.
-- Bug fixes for some error handeling.
+- Bug fixes for some error handling.
 
 ## 1.0.15
 Update

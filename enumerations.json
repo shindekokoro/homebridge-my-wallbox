@@ -3,7 +3,7 @@
 		{"status":0,
 			"statusDescription":"DISCONNECTED",
 			"text":"Charger not connected to the network",
-			"altText":"Netowrk connection failed",
+			"altText":"Network connection failed",
 			"mode":"errorMode"
 		},
 		{"status":4,
@@ -178,6 +178,12 @@
 			"text":"Unlock the charger to start using it",
 			"altText":"Unlock charger to start session",
 			"mode":"lockedMode"
+		},
+		{"status":403,
+			"statusDescription":"Wrong current status to start charging action",
+			"text":"Wrong current status to start charging action",
+			"altText":"",
+			"mode":"readyMode"
 		}
 	]
 }

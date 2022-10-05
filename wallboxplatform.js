@@ -32,15 +32,12 @@ class wallboxPlatform {
 		this.lastInterval
 		this.apiCount=0
 		this.liveUpdate=false
-		this.showBattery=false
+		this.showBattery= config.cars ? true : false
 		this.showControls=config.showControls
 		this.useFahrenheit=config.useFahrenheit || true
 		this.id
     this.userId
 		this.cars=config.cars
-		this.batterySize= this.cars ? this.cars[0].kwH : 80;
-		this.voltage=240
-		this.amperage=40
 		this.locationName=config.locationName
 		this.locationMatch
 		this.accessories=[]
@@ -50,19 +47,19 @@ class wallboxPlatform {
 			this.showControls=4
 			this.useFahrenheit=false
 		}
-		if(config.cars){this.showBattery=true}
+
     if(!config.email || !config.password){
       this.log.error('Valid email and password are required in order to communicate with wallbox, please check the plugin config')
     }
-      this.log.info('Starting Wallbox Platform using homebridge API', api.version)
-      if(api){
-        this.api=api
-        this.api.on("didFinishLaunching", function (){
-          // Get devices
-          this.getDevices()
-        }.bind(this))
-      }
+    this.log.info('Starting Wallbox Platform using homebridge API', api.version)
+    if(api){
+      this.api=api
+      this.api.on("didFinishLaunching", function (){
+        // Get devices
+        this.getDevices()
+      }.bind(this))
     }
+  }
 
   identify (){
     this.log.info('Identify wallbox!')
@@ -92,8 +89,6 @@ class wallboxPlatform {
 				this.log.info('Found group for %s ', group.name)
 				group.chargers.forEach((charger)=>{
 					this.log.info('Found %s with software %s',charger.name, charger.software.currentVersion)
-          this.stateOfCharge = charger.addedEnergy ? (charger.addedEnergy/this.batterySize*100).toFixed(2) : 0;
-          this.log.error(this.stateOfCharge)
 					if(charger.software.updateAvailable){
 						this.log.warn('%s software update %s is available',charger.name, charger.software.latestVersion)
 					}
@@ -258,20 +253,20 @@ class wallboxPlatform {
 			let added_kWh=charger.added_energy
 			let chargingTime=charger.charging_time
 
-			this.log.debug('Updating charger ID %s',chargerID)
-			let uuid=UUIDGen.generate(chargerUID)
-			let lockAccessory=this.accessories[uuid]
-			let controlService
-			let switchService
-			let outletService
-			let lockService
-			let batteryService
-			let statusInfo
-			lockService=lockAccessory.getServiceById(Service.LockMechanism, chargerID)
-			if(this.showBattery){batteryService=lockAccessory.getServiceById(Service.Battery, chargerID)}
-			if(this.showControls==5 || this.showControls==4){outletService=lockAccessory.getServiceById(Service.Outlet, chargerID)}
-			if(this.showControls==3 || this.showControls==4){controlService=lockAccessory.getServiceById(Service.Thermostat, chargerID)}
-			if(this.showControls==1 || this.showControls==4){switchService=lockAccessory.getServiceById(Service.Switch, chargerID)}
+			this.log.debug('Updating charger ID %s',chargerID);
+			let uuid = UUIDGen.generate(chargerUID);
+			let lockAccessory = this.accessories[uuid];
+			let controlService = lockAccessory.getServiceById(Service.Thermostat, chargerID);
+			let switchService = lockAccessory.getServiceById(Service.Switch, chargerID);
+			let outletService = lockAccessory.getServiceById(Service.Outlet, chargerID);
+			let lockService = lockAccessory.getServiceById(Service.LockMechanism, chargerID);
+			let batteryService = lockAccessory.getServiceById(Service.Battery, chargerID);
+      let temperatureService = lockAccessory.getServiceById(Service.TemperatureSensor, chargerID);
+      let batteryPercent = this.calcBattery(batteryService,added_kWh,chargingTime);
+      let tempPercentage = (batteryPercent-32+.01)*5/9;
+      let tempControl = this.useFahrenheit ? ((maxAmps-32+.01)*5/9).toFixed(2) : maxAmps;
+      let chargerState
+      let statusInfo
 
 			/****
 			enumerations will contain list of known status and descriptions
@@ -280,7 +275,7 @@ class wallboxPlatform {
 			****/
 
 			try {
-				statusInfo=this.enumeration.items.filter(result=>result.status == statusID)[0]
+				statusInfo = this.enumeration.items.filter(result=>result.status == statusID)[0];
 				this.log.debug('Refreshed charger with status=%s %s - %s. %s.',statusID,statusInfo.statusDescription,statusInfo.text,statusInfo.altText)
 			}catch(err) {
 				statusInfo.mode="unknown"
@@ -288,85 +283,36 @@ class wallboxPlatform {
 			switch(statusInfo.mode){
 				case 'lockedMode':
 				case 'readyMode':
-					lockService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
-					if(charger.statusID==210){
-						lockService.getCharacteristic(Characteristic.OutletInUse).updateValue(true)
-					}
-					else{
-						lockService.getCharacteristic(Characteristic.OutletInUse).updateValue(false)
-					}
-					lockService.getCharacteristic(Characteristic.LockCurrentState).updateValue(locked)
-					lockService.getCharacteristic(Characteristic.LockTargetState).updateValue(locked)
-					if(this.showControls==5 || this.showControls==4){outletService.getCharacteristic(Characteristic.On).updateValue(false)}
-					if(this.showControls==3 || this.showControls==4){
-						controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(false)
-						controlService.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(false)
-						if(this.useFahrenheit){
-							controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(((maxAmps-32+.01)*5/9).toFixed(2))
-							controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(((maxAmps-32+.01)*5/9).toFixed(2))
-						}
-						else{
-							controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(maxAmps)
-							controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(maxAmps)
-						}
-					}
-					if(this.showControls==1 || this.showControls==4){switchService.getCharacteristic(Characteristic.On).updateValue(false)}
-					if(this.showBattery){
-						batteryService.getCharacteristic(Characteristic.ChargingState).updateValue(Characteristic.ChargingState.NOT_CHARGING)
-						batteryService.getCharacteristic(Characteristic.BatteryLevel).updateValue(this.calcBattery(batteryService,added_kWh,chargingTime))
-					}
-					break
+          let inUse = charger.statusID == 210 ? true : false;
+          chargerState = false;
+          this.lockMechanism.updateLockService(lockService, Characteristic.StatusFault.NO_FAULT, inUse, locked);
+          this.outlet.updateOutletService(outletService, chargerState);
+          this.control.updateControlService(controlService, chargerState, tempControl);
+          this.basicSwitch.updateSwitchService(switchService, chargerState);
+          this.temperature.updateTemperatureService(temperatureService, tempPercentage);
+          this.battery.updateBatteryService(batteryService, Characteristic.ChargingState.NOT_CHARGING, batteryPercent);
+					break;
 				case 'chargingMode':
-					lockService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
-					lockService.getCharacteristic(Characteristic.OutletInUse).updateValue(true)
-					lockService.getCharacteristic(Characteristic.LockCurrentState).updateValue(locked)
-					lockService.getCharacteristic(Characteristic.LockTargetState).updateValue(locked)
-					if(this.showControls==5 || this.showControls==4){outletService.getCharacteristic(Characteristic.On).updateValue(true)}
-					if(this.showControls==3 || this.showControls==4){
-						controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(true)
-						controlService.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(true)
-						if(this.useFahrenheit){
-							controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(((maxAmps-32+.01)*5/9).toFixed(2))
-							controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(((maxAmps-32+.01)*5/9).toFixed(2))
-						}
-						else{
-							controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(maxAmps)
-							controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(maxAmps)
-						}
-					}
-					if(this.showControls==1 || this.showControls==4){switchService.getCharacteristic(Characteristic.On).updateValue(true)}
-					if(this.showBattery){
-						batteryService.getCharacteristic(Characteristic.ChargingState).updateValue(Characteristic.ChargingState.CHARGING)
-						batteryService.getCharacteristic(Characteristic.BatteryLevel).updateValue(this.calcBattery(batteryService,added_kWh,chargingTime))
-					}
-					break
+          chargerState = true;
+          this.lockMechanism.updateLockService(lockService, Characteristic.StatusFault.NO_FAULT, true, locked);
+          this.outlet.updateOutletService(outletService, chargerState);
+					this.control.updateControlService(controlService, chargerState, tempControl);
+          this.basicSwitch.updateSwitchService(switchService, chargerState);
+          this.temperature.updateTemperatureService(temperatureService, tempPercentage);
+          this.battery.updateBatteryService(batteryService, Characteristic.ChargingState.CHARGING, batteryPercent);
+					break;
 				case 'standbyMode':
-					lockService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.NO_FAULT)
-					lockService.getCharacteristic(Characteristic.OutletInUse).updateValue(true)
-					lockService.getCharacteristic(Characteristic.LockCurrentState).updateValue(locked)
-					lockService.getCharacteristic(Characteristic.LockTargetState).updateValue(locked)
-					if(this.showControls==5 || this.showControls==4){outletService.getCharacteristic(Characteristic.On).updateValue(false)}
-					if(this.showControls==3 || this.showControls==4){
-						controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(false)
-						controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(false)
-						if(this.useFahrenheit){
-							controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(((maxAmps-32+.01)*5/9).toFixed(2))
-							controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(((maxAmps-32+.01)*5/9).toFixed(2))
-						}
-						else{
-							controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(maxAmps)
-							controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(maxAmps)
-						}
-					}
-					if(this.showControls==1 || this.showControls==4){switchService.getCharacteristic(Characteristic.On).updateValue(false)}
-					if(this.showBattery){
-						batteryService.getCharacteristic(Characteristic.ChargingState).updateValue(Characteristic.ChargingState.NOT_CHARGING)
-						batteryService.getCharacteristic(Characteristic.BatteryLevel).updateValue(this.calcBattery(batteryService,added_kWh,chargingTime))
-					}
+          chargerState = false;
+          this.lockMechanism.updateLockService(lockService, Characteristic.StatusFault.NO_FAULT, true, locked);
+          this.outlet.updateOutletService(outletService, chargerState);
+          this.control.updateControlService(controlService, chargerState, tempControl);
+          this.basicSwitch.updateSwitchService(switchService, chargerState);
+          this.temperature.updateTemperatureService(temperatureService, tempPercentage);
+          this.battery.updateBatteryService(batteryService, Characteristic.ChargingState.NOT_CHARGING, batteryPercent);
 					if(statusID==4){
 						this.log.info('%s completed at %s',chargerName, new Date().toLocaleString())
 					}
-					break
+					break;
 				case 'firmwareUpdate':
 				case 'errorMode':
 					lockService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT)

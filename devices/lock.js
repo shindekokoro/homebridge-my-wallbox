@@ -50,6 +50,15 @@ lockMechanism.prototype={
 			//.on('set', this.setLockCurrentState.bind(this, device, lockService))
   },
 
+	updateLockService(lockService, lockStatusFault, lockInUse, lockedState){
+		if(!lockService){ return this.log.error('No lock configured'); }
+		this.log.debug("Update Lock for %s",lockService.getCharacteristic(Characteristic.Name).value)
+		lockService.getCharacteristic(Characteristic.StatusFault).updateValue(lockStatusFault)
+		lockService.getCharacteristic(Characteristic.OutletInUse).updateValue(lockInUse)
+		lockService.getCharacteristic(Characteristic.LockCurrentState).updateValue(lockedState)
+		lockService.getCharacteristic(Characteristic.LockTargetState).updateValue(lockedState)
+	},
+
 	getLockCurrentState: function (device,lockService, callback) {
 		let currentValue=lockService.getCharacteristic(Characteristic.LockCurrentState).value
 		this.platform.startLiveUpdate(device)

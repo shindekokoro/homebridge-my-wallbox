@@ -15,17 +15,14 @@ temperature.prototype={
 		return temperatureSensor;
 	},
 
-  async configureTemperatureService(temperatureSensor,stateOfCharge){
+  async configureTemperatureService(temperatureSensor){
     this.log.debug("Configured temperature service for %s",temperatureSensor.getCharacteristic(Characteristic.Name).value)
-		stateOfCharge = ((stateOfCharge-32)/1.8)
-		temperatureSensor
-			.setCharacteristic(Characteristic.CurrentTemperature,stateOfCharge)
+		return temperatureSensor.setCharacteristic(Characteristic.CurrentTemperature,0);
   },
 
-	async updateTemperatureService(temperatureSensor){
+	async updateTemperatureService(temperatureSensor, stateOfCharge){
     this.log.debug("Update temperature service for %s",temperatureSensor.getCharacteristic(Characteristic.Name).value)
-
-		temperatureSensor.getCharacteristic(Characteristic.CurrentTemperature).updateValue(this.stateOfCharge);
+		return temperatureSensor.getCharacteristic(Characteristic.CurrentTemperature).updateValue(stateOfCharge);
   }
 
 }

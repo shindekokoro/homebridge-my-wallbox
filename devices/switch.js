@@ -31,6 +31,12 @@ basicSwitch.prototype={
       .on('set', this.setSwitchValue.bind(this, device, switchService))
   },
 
+	updateSwitchService(switchService, switchState){
+		if(!switchService){ return; }
+		this.log.info("Updated %s switch" , switchService.getCharacteristic(Characteristic.Name).value)
+		switchService.getCharacteristic(Characteristic.On).updateValue(switchState)
+	},
+
   setSwitchValue(device, switchService, value, callback){
 		this.wallboxapi.getChargerData(this.platform.token,device.id).then(response=>{
 			try{

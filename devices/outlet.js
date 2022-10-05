@@ -31,6 +31,12 @@ basicOutlet.prototype={
       .on('set', this.setOutletValue.bind(this, device, outletService))
   },
 
+	updateOutletService(outletService, outletState){
+		if(!outletService){ return; }
+    this.log.info("Configured %s outlet" , outletService.getCharacteristic(Characteristic.Name).value);
+    outletService.getCharacteristic(Characteristic.On).updateValue(outletState);
+  },
+
   setOutletValue(device, outletService, value, callback){
 		this.wallboxapi.getChargerData(this.platform.token,device.id).then(response=>{
 			try{

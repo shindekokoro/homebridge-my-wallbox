@@ -22,7 +22,7 @@ battery.prototype={
 
   configureBatteryService(batteryStatus){
     this.log.debug("Configured battery service for %s",batteryStatus.getCharacteristic(Characteristic.Name).value)
-		if(batteryStatus.getCharacteristic(Characteristic.BatteryLevel).value < 50){
+		if(batteryStatus.getCharacteristic(Characteristic.BatteryLevel).value < 30){
 			batteryStatus
 				.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
 		} else{
@@ -30,6 +30,21 @@ battery.prototype={
 				.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL)
 		}
 			//.on('get', this.getStatusLowBattery.bind(this, batteryStatus))
+  },
+	updateBatteryService(batteryStatus, batteryChargeState, batteryPercent){
+		if(!batteryStatus){ return; }
+		else{
+			this.log.debug("Update battery service for %s",batteryStatus.getCharacteristic(Characteristic.Name).value)
+			batteryStatus.getCharacteristic(Characteristic.ChargingState).updateValue(batteryChargeState)
+			batteryStatus.getCharacteristic(Characteristic.BatteryLevel).updateValue(batteryPercent)
+			if(batteryStatus.getCharacteristic(Characteristic.BatteryLevel).value < 30){
+				batteryStatus
+					.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
+			} else{
+				batteryStatus
+					.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL)
+			}
+		}
   },
 
 	getStatusLowBattery(batteryStatus,callback){
