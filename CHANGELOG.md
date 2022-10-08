@@ -7,7 +7,10 @@ Update
 ## 1.1.1
 Update
 - Added update__Service functions to control devices
-- Cleanup code
+- Refactored startup code.
+- Fixed bug refreshing token after API changed ttl from 15 days to 15 mins
+-	Added some retry logic if network is down during a restart
+- Code cleanup.
 
 ## 1.1.0
 Update
