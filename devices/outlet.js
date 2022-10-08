@@ -68,6 +68,8 @@ basicOutlet.prototype={
 					else{
 						this.wallboxapi.remoteAction(this.platform.token,device.id,'resume').then(response=>{
 							switch(response.status){
+								case 403:
+									this.log.warn('Wrong status showing in HomeKit, updating');
 								case 200:
 									outletService.getCharacteristic(Characteristic.On).updateValue(value)
 									this.log.info('Charging resumed')
@@ -90,6 +92,8 @@ basicOutlet.prototype={
 					else{
 						this.wallboxapi.remoteAction(this.platform.token,device.id,'pause').then(response=>{
 							switch(response.status){
+								case 403:
+									this.log.warn('Wrong status showing in HomeKit, updating');
 								case 200:
 									outletService.getCharacteristic(Characteristic.On).updateValue(value)
 									this.log.info('Charging paused')

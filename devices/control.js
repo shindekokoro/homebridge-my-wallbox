@@ -126,6 +126,8 @@ control.prototype={
 					else{
 						this.wallboxapi.setAmps(this.platform.token,device.id,amps).then(response=>{
 							switch(response.status){
+								case 403:
+									this.log.warn('Wrong status showing in HomeKit, updating');
 								case 200:
 									controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(value)
 									controlService.getCharacteristic(Characteristic.CurrentTemperature).updateValue(value)
@@ -191,6 +193,8 @@ control.prototype={
 					else{
 						this.wallboxapi.remoteAction(this.platform.token,device.id,'resume').then(response=>{
 							switch(response.status){
+								case 403:
+									this.log.warn('Wrong status showing in HomeKit, updating');
 								case 200:
 									controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(value)
 									controlService.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(value)
@@ -215,6 +219,8 @@ control.prototype={
 					else{
 						this.wallboxapi.remoteAction(this.platform.token,device.id,'pause').then(response=>{
 							switch(response.status){
+								case 403:
+									this.log.warn('Wrong status showing in HomeKit, updating');
 								case 200:
 									controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).updateValue(value)
 									controlService.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(value)
