@@ -1,5 +1,9 @@
 # Changes
 
+## 1.1.2
+Update
+- Refresh token based off of TTL, no need for crazy calculations. Currently appears to be 15 minutes.
+
 ## 1.1.1
 Update
 - Added update__Service functions to control devices

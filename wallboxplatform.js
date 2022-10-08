@@ -172,16 +172,17 @@ class wallboxPlatform {
 	}
 
 	async setTokenRefresh(ttl){
-			if(ttl>Date.now()-3600000){
+			if(ttl>Date.now()){
 				setInterval(async()=>{
 					try{
 						let signin=await this.wallboxapi.signin(this.email,this.password)
 						this.log.debug('refreshed token %s',signin.data.data.attributes.token)
 						this.token=signin.data.data.attributes.token
 						this.log.info('Token has been refreshed')
-					}catch(err){this.log.error('Failed to refresh token', err)}
-				},ttl-Date.now()-3600000) // ~15 day ttl -1 hour
-			}
+					}
+          catch(err){this.log.error('Failed to refresh token', err)}
+				}, ttl-Date.now())
+      }
 			else{
 				this.log.warn('Unable to set refresh token interval')
 			}
