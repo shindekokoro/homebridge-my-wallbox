@@ -1,5 +1,9 @@
 # Changes
 
+## 1.1.3
+Update
+- Make sure setTokenRefresh function called at least once to setInterval for login token refresh.
+
 ## 1.1.2
 Update
 - Refresh token based off of TTL, no need for crazy calculations. Currently appears to be 15 minutes.

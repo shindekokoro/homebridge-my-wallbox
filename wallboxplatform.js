@@ -78,9 +78,7 @@ class wallboxPlatform {
 			this.log.debug('Found Token %s',signin.data.data.attributes.token)
 			this.id=signin.data.data.attributes.user_id
 			this.token=signin.data.data.attributes.token
-			//this.setTokenRefresh(signin.data.data.attributes.ttl-Date.now())
-			//this.log.warn(new Date(signin.data.data.attributes.ttl).toLocaleString())
-			//this.log.warn(new Date(Date.now()).toLocaleString())
+			this.setTokenRefresh(signin.data.data.attributes.ttl)
 
 			//get get user id
 			let userId=await this.wallboxapi.getId(this.token,this.id).catch(err=>{this.log.error('Failed to get userId for build', err)})
@@ -174,21 +172,24 @@ class wallboxPlatform {
 	}
 
 	setTokenRefresh(ttl){
-			if(ttl>Date.now()){
-				setInterval(async()=>{
-					try{
-						let signin=await this.wallboxapi.signin(this.email,this.password).catch(err=>{this.log.error('Failed to refresh token', err)})
-						this.log.debug('refreshed token %s',signin.data.data.attributes.token)
-						this.token=signin.data.data.attributes.token
-						this.log.info('Token has been refreshed')
-					}
-          catch(err){this.log.error('Failed to refresh token', err)}
-				}, ttl-Date.now())
+    let refreshTime = ttl-Date.now();
+    let refreshMinutes = Math.round(refreshTime/1000/60);
+    this.log.info('Setting login token refresh rate. %s minutes', refreshMinutes);
+    setInterval(async()=>{
+      if(ttl <= Date.now()){ // if ttl has past the current time, refresh the token.
+        try{
+          let signin=await this.wallboxapi.signin(this.email,this.password).catch(err=>{this.log.error('Failed to refresh token', err)})
+          this.log.debug('Refreshed token %s',signin.data.data.attributes.token)
+          this.token=signin.data.data.attributes.token
+          this.log.info('Token has been refreshed')
+        }
+        catch(err){this.log.error('Failed to refresh token', err)}
       }
-			else{
-				this.log.warn('Unable to set refresh token interval')
+      else{
+				this.log.warn('Token not expired yet')
 			}
-		}
+    }, refreshTime) // ttl time - current time should always refresh token when expired.
+	}
 
 	setChargerRefresh(device){
 		// Refresh charger status
