@@ -3,6 +3,7 @@
 ## 1.1.3
 Update
 - Make sure setTokenRefresh function called at least once to setInterval for login token refresh.
+- Code cleanup
 
 ## 1.1.2
 Update

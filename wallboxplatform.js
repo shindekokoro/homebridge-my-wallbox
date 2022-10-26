@@ -224,9 +224,14 @@ class wallboxPlatform {
 	}
 
 	calcBattery(batteryService,energyAdded,chargingTime){
+    let wallboxChargerName = batteryService.getCharacteristic(Characteristic.Name).value;
 		if(this.cars){
-			let car=this.cars.filter(charger=>(charger.chargerName.includes(batteryService.getCharacteristic(Characteristic.Name).value)))
-			this.batterySize=car[0].kwH
+			let car=this.cars.filter(charger=>(charger.chargerName.includes(wallboxChargerName)));
+      if(car[0]){
+        this.batterySize=car[0].kwH
+      }else {
+        this.log.warn('Unable to find charger named (%s) as configured in settings.', wallboxChargerName)
+      }
 		}
 		else{
 			this.batterySize=80

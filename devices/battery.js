@@ -37,7 +37,7 @@ battery.prototype={
 			this.log.debug("Update battery service for %s",batteryStatus.getCharacteristic(Characteristic.Name).value)
 			batteryStatus.getCharacteristic(Characteristic.ChargingState).updateValue(batteryChargeState)
 			batteryStatus.getCharacteristic(Characteristic.BatteryLevel).updateValue(batteryPercent)
-			if(batteryStatus.getCharacteristic(Characteristic.BatteryLevel).value < 30){
+			if(batteryStatus.getCharacteristic(Characteristic.BatteryLevel).value < 10){
 				batteryStatus
 					.setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW)
 			} else{
