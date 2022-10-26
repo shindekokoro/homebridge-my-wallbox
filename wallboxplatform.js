@@ -25,7 +25,7 @@ class wallboxPlatform {
     this.email=config.email
     this.password=config.password
     this.token
-		this.retryWait=config.retryWait || 30 //sec
+		this.retryWait=config.retryWait || 60 //sec
 		this.refreshRate=config.refreshRate || 24 //hour
 		this.liveTimeout=config.liveRefreshTimeout || 2 //min
 		this.liveRefresh=config.liveRefreshRate || 20 //sec
@@ -194,7 +194,7 @@ class wallboxPlatform {
 	setChargerRefresh(device){
 		// Refresh charger status
 			setInterval(async()=>{
-				this.log('API polling update calls for this polling period %s',this.apiCount)
+				this.log('API calls for this polling period %s',this.apiCount)
 				this.apiCount=0
 				this.getStatus(device.id)
 			}, this.refreshRate*60*60*1000)
@@ -203,8 +203,6 @@ class wallboxPlatform {
 	async startLiveUpdate(device){
 		clearInterval(this.lastInterval)
 		//get new token
-		let signin=await this.wallboxapi.signin(this.email,this.password).catch(err=>{this.log.error('Failed to refresh token', err)})
-		this.token=signin.data.data.attributes.token
 		let startTime = new Date().getTime() //live refresh
 		if(!this.liveUpdate){this.log.debug("live update started")}
 		this.liveUpdate=true
@@ -216,9 +214,8 @@ class wallboxPlatform {
 						this.log.debug("live update stopped")
 						return
 					}
-					this.apiCount=this.apiCount+1
-					this.log.debug('API get count %s',this.apiCount)
 				this.getStatus(device.id)
+				this.log.debug('API call count %s',this.apiCount)
 			}, this.liveRefresh*1000)
 		this.lastInterval=interval
 	}
