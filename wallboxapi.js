@@ -11,6 +11,7 @@ function wallboxAPI (platform,log){
 wallboxAPI.prototype={
 
 	checkEmail: async function(email){
+		this.platform.apiCount++
 		try {
 			this.log.debug('Retrieving device')
 			let response = await axios({
@@ -19,6 +20,7 @@ wallboxAPI.prototype={
 					url: `/emails/${email}`,
 					headers: {
 						'Content-Type': 'application/json',
+						'User-Agent': `${PluginName}/${PluginVersion}`
 					},
 					responseType: 'json'
 			}).catch(err=>{
@@ -32,8 +34,9 @@ wallboxAPI.prototype={
 	},
 
 	signin: async function(email,password){
-	let b64encoded=(Buffer.from(email+':'+password,'utf8')).toString('base64')
-	try {
+		this.platform.apiCount++
+		let b64encoded=(Buffer.from(email+':'+password,'utf8')).toString('base64')
+		try {
 			this.log.debug('Retrieving token')
 			let response = await axios({
 					method: 'get',
@@ -42,9 +45,8 @@ wallboxAPI.prototype={
 					headers: {
 						'Content-Type': 'application/json',
 						'Authorization': `Basic ${b64encoded}`,
-						'Origin':'https://my.wallbox.com',
-						'Partner':'wallbox',
-						'Referer':'https://my.wallbox.com/'
+						'Partner': 'wallbox',
+						'User-Agent': `${PluginName}/${PluginVersion}`
 					},
 					responseType: 'json'
 			}).catch(err=>{
@@ -58,7 +60,8 @@ wallboxAPI.prototype={
 	},
 
 	getId: async function(token,id){
-	try {
+		this.platform.apiCount++
+		try {
 			this.log.debug('Retrieving User ID')
 			let response = await axios({
 					method: 'get',
@@ -66,7 +69,8 @@ wallboxAPI.prototype={
 					url: `/v4/users/${id}/id`,
 					headers: {
 						'Content-Type': 'application/json',
-						'Authorization': `Bearer ${token}`
+						'Authorization': `Bearer ${token}`,
+						'User-Agent': `${PluginName}/${PluginVersion}`
 						},
 					responseType: 'json'
 			}).catch(err=>{
@@ -80,6 +84,7 @@ wallboxAPI.prototype={
 	},
 
 	getUser: async function(token,userId){
+		this.platform.apiCount++
 		try {
 			this.log.debug('Retrieving user info')
 			let response = await axios({
@@ -88,7 +93,8 @@ wallboxAPI.prototype={
 					url: `/v2/user/${userId}`,
 					headers: {
 						'Content-Type': 'application/json',
-						'Authorization': `Bearer ${token}`
+						'Authorization': `Bearer ${token}`,
+						'User-Agent': `${PluginName}/${PluginVersion}`
 					},
 					responseType: 'json'
 			}).catch(err=>{
@@ -102,6 +108,7 @@ wallboxAPI.prototype={
 	},
 
 	getChargerGroups: async function(token){
+		this.platform.apiCount++
 		try {
 			this.log.debug('Retrieving charger groups')
 			let response = await axios({
@@ -110,7 +117,8 @@ wallboxAPI.prototype={
 					url: `/v3/chargers/groups`,
 					headers: {
 						'Content-Type': 'application/json',
-						'Authorization': `Bearer ${token}`
+						'Authorization': `Bearer ${token}`,
+						'User-Agent': `${PluginName}/${PluginVersion}`
 					},
 					responseType: 'json'
 			}).catch(err=>{
@@ -124,6 +132,7 @@ wallboxAPI.prototype={
 	},
 
 	getChargerStatus: async function(token,chargerId){
+		this.platform.apiCount++
 		try {
 			this.log.debug('Retrieving charger status')
 			let response = await axios({
@@ -132,7 +141,8 @@ wallboxAPI.prototype={
 					url: `/chargers/status/${chargerId}`,
 					headers: {
 						'Content-Type': 'application/json',
-						'Authorization': `Bearer ${token}`
+						'Authorization': `Bearer ${token}`,
+						'User-Agent': `${PluginName}/${PluginVersion}`
 					},
 					responseType: 'json'
 			}).catch(err=>{
@@ -146,6 +156,7 @@ wallboxAPI.prototype={
 	},
 
 	getChargerData: async function(token,chargerId){
+		this.platform.apiCount++
 		try {
 			this.log.debug('Retrieving charger data')
 			let response = await axios({
@@ -154,7 +165,8 @@ wallboxAPI.prototype={
 					url: `/v2/charger/${chargerId}`,
 					headers: {
 						'Content-Type': 'application/json',
-						'Authorization': `Bearer ${token}`
+						'Authorization': `Bearer ${token}`,
+						'User-Agent': `${PluginName}/${PluginVersion}`
 					},
 					responseType: 'json'
 			}).catch(err=>{
@@ -168,6 +180,7 @@ wallboxAPI.prototype={
 	},
 
 	getChargerConfig: async function(token,chargerId){
+		this.platform.apiCount++
 		try {
 			this.log.debug('Retrieving charger config')
 			let response = await axios({
@@ -176,7 +189,8 @@ wallboxAPI.prototype={
 					url: `/chargers/config/${chargerId}`,
 					headers: {
 						'Content-Type': 'application/json',
-						'Authorization': `Bearer ${token}`
+						'Authorization': `Bearer ${token}`,
+						'User-Agent': `${PluginName}/${PluginVersion}`
 					},
 					responseType: 'json'
 			}).catch(err=>{
@@ -190,6 +204,7 @@ wallboxAPI.prototype={
 	},
 
 	getLastSession: async function(token,chargerId){
+		this.platform.apiCount++
 		try {
 			this.log.debug('Retrieving charger session')
 			let response = await axios({
@@ -198,7 +213,8 @@ wallboxAPI.prototype={
 					url: `v4/charger-last-sessions`,
 					headers: {
 						'Content-Type': 'application/json',
-						'Authorization': `Bearer ${token}`
+						'Authorization': `Bearer ${token}`,
+						'User-Agent': `${PluginName}/${PluginVersion}`
 					},
 					responseType: 'json'
 			}).catch(err=>{
@@ -212,6 +228,7 @@ wallboxAPI.prototype={
 	},
 
 	lock: async function(token,chargerId,value){
+		this.platform.apiCount++
 		try {
 			this.log.debug('Setting charger lock state for %s to %s',chargerId,value)
 			let response = await axios({
@@ -220,7 +237,8 @@ wallboxAPI.prototype={
 					url: `/v2/charger/${chargerId}`,
 					headers: {
 						'Content-Type': 'application/json',
-						'Authorization': `Bearer ${token}`
+						'Authorization': `Bearer ${token}`,
+						'User-Agent': `${PluginName}/${PluginVersion}`
 					},
 					data:{
 						"locked": value
@@ -237,6 +255,7 @@ wallboxAPI.prototype={
 	},
 
 	setAmps: async function(token,chargerId,value){
+		this.platform.apiCount++
 		try {
 			this.log.debug('Setting amperage for %s to %s',chargerId,value)
 			let response = await axios({
@@ -245,7 +264,8 @@ wallboxAPI.prototype={
 					url: `/v2/charger/${chargerId}`,
 					headers: {
 						'Content-Type': 'application/json',
-						'Authorization': `Bearer ${token}`
+						'Authorization': `Bearer ${token}`,
+						'User-Agent': `${PluginName}/${PluginVersion}`
 					},
 					data:{
 						"maxChargingCurrent": value
@@ -263,6 +283,7 @@ wallboxAPI.prototype={
 	},
 
 	remoteAction: async function(token,chargerId,value){
+		this.platform.apiCount++
 		try {
 			this.log.debug('Setting charging state for %s to %s',chargerId,value)
 			let action
@@ -281,7 +302,8 @@ wallboxAPI.prototype={
 					url: `/v3/chargers/${chargerId}/remote-action`,
 					headers: {
 						'Content-Type': 'application/json',
-						'Authorization': `Bearer ${token}`
+						'Authorization': `Bearer ${token}`,
+						'User-Agent': `${PluginName}/${PluginVersion}`
 					},
 					data:{
 						"action": action

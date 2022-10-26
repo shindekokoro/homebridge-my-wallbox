@@ -2,7 +2,11 @@
 
 ## 1.1.2
 Update
-- Refresh token based off of TTL, no need for crazy calculations. Currently appears to be 15 minutes.
+- Refresh token based off of TTL, no need for crazy calculations. Currently appears to be 24 hours.
+- Will now record count all API calls in debug log for reporting period.
+-	Added explicit user-agent info to API calls.
+-	Bumped dependencies.
+- Code cleanup.
 
 ## 1.1.1
 Update
