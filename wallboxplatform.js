@@ -33,6 +33,7 @@ class wallboxPlatform {
 		this.apiCount=0
 		this.liveUpdate=false
 		this.showBattery= config.cars ? true : false
+    this.showTemperature=config.tempService ? config.tempService : false
 		this.showControls=config.showControls
 		this.useFahrenheit=config.useFahrenheit || true
 		this.id
@@ -123,13 +124,13 @@ class wallboxPlatform {
 					this.log.info('Adding Lock for %s charger ', chargerData.name)
 					this.log.debug('Registering platform accessory')
 
-						let lockAccessory=this.lockMechanism.createLockAccessory(chargerData,uuid)
-						let lockService=this.lockMechanism.createLockService(chargerData)
-            let temperatureService = this.temperature.createTemperatureService(chargerData);
-            this.temperature.configureTemperatureService(temperatureService,this.stateOfCharge);
-            lockAccessory.addService(temperatureService)
-						this.lockMechanism.configureLockService(chargerData, lockService)
-						lockAccessory.addService(lockService)
+					let lockAccessory=this.lockMechanism.createLockAccessory(chargerData,uuid)
+					let lockService=this.lockMechanism.createLockService(chargerData)
+          let temperatureService = this.temperature.createTemperatureService(chargerData);
+          this.temperature.configureTemperatureService(temperatureService,this.stateOfCharge);
+          lockAccessory.addService(temperatureService)
+					this.lockMechanism.configureLockService(chargerData, lockService)
+					lockAccessory.addService(lockService)
 
 					if(this.showBattery){
 						let batteryService=this.battery.createBatteryService(chargerData)
