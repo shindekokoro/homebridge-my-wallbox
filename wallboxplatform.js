@@ -154,33 +154,34 @@ class wallboxPlatform {
 					this.lockMechanism.configureLockService(chargerData, lockService)
 					lockAccessory.addService(lockService)
 
+					let sensorService=this.sensor.createSensorService(chargerData,'SOC')
+					let batteryService=this.battery.createBatteryService(chargerData)
+					let outletService=this.outlet.createOutletService(chargerData,'Start/Pause')
+					let controlService=this.control.createControlService(chargerData,'Charging Amps')
+					let switchService=this.basicSwitch.createSwitchService(chargerData,'Start/Pause')
+
 					if(this.showSensor){
-						let sensorService=this.sensor.createSensorService(chargerData,'SOC')
 						this.sensor.configureSensorService(chargerData,sensorService)
 						lockAccessory.getService(Service.LockMechanism).addLinkedService(sensorService)
 						lockAccessory.addService(sensorService)
 					}
 					if(this.showBattery){
-						let batteryService=this.battery.createBatteryService(chargerData)
 						this.battery.configureBatteryService(batteryService)
 						lockAccessory.getService(Service.LockMechanism).addLinkedService(batteryService)
 						lockAccessory.addService(batteryService)
 						this.amps[batteryService.subtype]=chargerData.maxChgCurrent
 					}
 					if(this.showControls==5 || this.showControls==4){
-						let outletService=this.outlet.createOutletService(chargerData,'Start/Pause')
 						this.outlet.configureOutletService(chargerData, outletService)
 						lockAccessory.getService(Service.LockMechanism).addLinkedService(outletService)
 						lockAccessory.addService(outletService)
 					}
 					if(this.showControls==3 || this.showControls==4){
-						let controlService=this.control.createControlService(chargerData,'Charging Amps')
 						this.control.configureControlService(chargerData, controlService)
 						lockAccessory.getService(Service.LockMechanism).addLinkedService(controlService)
 						lockAccessory.addService(controlService)
 					}
 					if(this.showControls==1 || this.showControls==4){
-						let switchService=this.basicSwitch.createSwitchService(chargerData,'Start/Pause')
 						this.basicSwitch.configureSwitchService(chargerData, switchService)
 						lockAccessory.getService(Service.LockMechanism).addLinkedService(switchService)
 						lockAccessory.addService(switchService)
@@ -369,7 +370,6 @@ class wallboxPlatform {
 		try{
 			let chargerID=charger.config_data.charger_id
 			let chargerUID=charger.config_data.uid
-			this.log.error(chargerUID)
 			let locked=charger.config_data.locked
 			let maxAmps=charger.config_data.max_charging_current
 			let chargerName=charger.name
@@ -384,9 +384,8 @@ class wallboxPlatform {
 			let outletService = lockAccessory.getServiceById(Service.Outlet, chargerID);
 			let lockService = lockAccessory.getServiceById(Service.LockMechanism, chargerID);
 			let batteryService = lockAccessory.getServiceById(Service.Battery, chargerID);
-			let tempPercentage = (batteryPercent-32+.01)*5/9;
 			let tempControl = this.useFahrenheit ? ((maxAmps-32+.01)*5/9).toFixed(2) : maxAmps;
-			let sensorService = sensorService=lockAccessory.getServiceById(Service.HumiditySensor, chargerID);
+			let sensorService = lockAccessory.getServiceById(Service.HumiditySensor, chargerID);
 			let chargerState
 			let statusInfo
 			let batteryPercent = this.calcBattery(batteryService,added_kWh,chargingTime);
@@ -415,7 +414,7 @@ class wallboxPlatform {
           this.control.updateControlService(controlService, chargerState, tempControl);
           this.basicSwitch.updateSwitchService(switchService, chargerState);
           this.battery.updateBatteryService(batteryService, Characteristic.ChargingState.NOT_CHARGING, batteryPercent);
-					this.sensor.getCharacteristic(sensorService, Characteristic.CurrentRelativeHumidity, batteryPercent);
+					this.sensor.updateSensorService(sensorService, batteryPercent);
 					break;
 				case 'chargingMode':
           chargerState = true;
@@ -424,7 +423,7 @@ class wallboxPlatform {
 					this.control.updateControlService(controlService, chargerState, tempControl);
           this.basicSwitch.updateSwitchService(switchService, chargerState);
           this.battery.updateBatteryService(batteryService, Characteristic.ChargingState.CHARGING, batteryPercent);
-					this.sensor.getCharacteristic(sensorService, Characteristic.CurrentRelativeHumidity, batteryPercent);
+					this.sensor.updateSensorService(sensorService, batteryPercent);
 					break;
 				case 'standbyMode':
           chargerState = false;
@@ -433,7 +432,7 @@ class wallboxPlatform {
           this.control.updateControlService(controlService, chargerState, tempControl);
           this.basicSwitch.updateSwitchService(switchService, chargerState);
           this.battery.updateBatteryService(batteryService, Characteristic.ChargingState.NOT_CHARGING, batteryPercent);
-					this.sensor.getCharacteristic(sensorService, Characteristic.CurrentRelativeHumidity, batteryPercent);
+					this.sensor.updateSensorService(sensorService, batteryPercent);
 					if(statusID==4){
 						this.log.info('%s completed at %s',chargerName, new Date().toLocaleString())
 					}

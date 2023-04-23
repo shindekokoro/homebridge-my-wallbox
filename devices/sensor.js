@@ -29,8 +29,8 @@ sensor.prototype={
 
 	updateSensorService(sensorDevice, stateOfCharge){
 		if(!sensorDevice){ return; }
-    this.log.debug("Update temperature service for %s",temperatureSensor.getCharacteristic(Characteristic.Name).value)
-		return temperatureSensor.getCharacteristic(Characteristic.CurrentTemperature).updateValue(stateOfCharge);
+    this.log.debug("Update sensor service for %s",sensorDevice.getCharacteristic(Characteristic.Name).value)
+		return sensorDevice.getCharacteristic(Characteristic.CurrentRelativeHumidity).updateValue(stateOfCharge);
   }
 
 }
