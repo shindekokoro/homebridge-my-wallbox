@@ -120,12 +120,12 @@
 					}
 				]
 			},
-			"tempService": {
-				"title": "Create a Temperature Service",
+			"socSensor": {
+				"title": "Create a Humidity Sensor for Battery Percent",
 				"type": "boolean",
 				"required": false,
 				"default": false,
-				"description": "Do you want to create a Temperature Service for Automations?"
+				"description": "Do you want to create a Humidity Service for Automations?"
 			}
 		}
 	},
@@ -189,7 +189,7 @@
 			"type": "flex",
 			"flex-flow": "row wrap",
 			"items": [
-				"tempService"
+				"socSensor"
 			]
 		},
 		{

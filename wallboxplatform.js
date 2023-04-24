@@ -141,55 +141,61 @@ class wallboxPlatform {
 				accessConfig.chargers.forEach(async(charger)=>{
 					//loop each charger
 					let chargerData=await this.wallboxapi.getChargerData(this.token, charger).catch(err=>{this.log.error('Failed to get charger data for build. \n%s', err)})
-					let uuid = UUIDGen.generate(chargerData.uid);
-					let chargerConfig=await this.wallboxapi.getChargerConfig(this.token, charger).catch(err=>{this.log.error('Failed to get charger configs for build. \n%s', err)})
-					if(this.accessories[uuid]){
-						this.api.unregisterPlatformAccessories(PluginName, PlatformName, [this.accessories[uuid]])
-						delete this.accessories[uuid]
-					}
-					this.log.debug('Registering platform accessory')
+					let chargerName = this.cars.filter(car=>(car.chargerName==chargerData.name))
+					
+					if(chargerName[0]){
+						let uuid = UUIDGen.generate(chargerData.uid);
+						let chargerConfig=await this.wallboxapi.getChargerConfig(this.token, charger).catch(err=>{this.log.error('Failed to get charger configs for build. \n%s', err)})
+						if(this.accessories[uuid]){
+							this.api.unregisterPlatformAccessories(PluginName, PlatformName, [this.accessories[uuid]])
+							delete this.accessories[uuid]
+						}
+						this.log.debug('Registering platform accessory')
 
-					let lockAccessory=this.lockMechanism.createLockAccessory(chargerData,chargerConfig,uuid)
-					let lockService=this.lockMechanism.createLockService(chargerData)
-					this.lockMechanism.configureLockService(chargerData, lockService)
-					lockAccessory.addService(lockService)
+						let lockAccessory=this.lockMechanism.createLockAccessory(chargerData,chargerConfig,uuid)
+						let lockService=this.lockMechanism.createLockService(chargerData)
+						this.lockMechanism.configureLockService(chargerData, lockService)
+						lockAccessory.addService(lockService)
 
-					let sensorService=this.sensor.createSensorService(chargerData,'SOC')
-					let batteryService=this.battery.createBatteryService(chargerData)
-					let outletService=this.outlet.createOutletService(chargerData,'Start/Pause')
-					let controlService=this.control.createControlService(chargerData,'Charging Amps')
-					let switchService=this.basicSwitch.createSwitchService(chargerData,'Start/Pause')
+						let sensorService=this.sensor.createSensorService(chargerData,'SOC')
+						let batteryService=this.battery.createBatteryService(chargerData)
+						let outletService=this.outlet.createOutletService(chargerData,'Start/Pause')
+						let controlService=this.control.createControlService(chargerData,'Charging Amps')
+						let switchService=this.basicSwitch.createSwitchService(chargerData,'Start/Pause')
 
-					if(this.showSensor){
-						this.sensor.configureSensorService(chargerData,sensorService)
-						lockAccessory.getService(Service.LockMechanism).addLinkedService(sensorService)
-						lockAccessory.addService(sensorService)
+						if(this.showSensor){
+							this.sensor.configureSensorService(chargerData,sensorService)
+							lockAccessory.getService(Service.LockMechanism).addLinkedService(sensorService)
+							lockAccessory.addService(sensorService)
+						}
+						if(this.showBattery){
+							this.battery.configureBatteryService(batteryService)
+							lockAccessory.getService(Service.LockMechanism).addLinkedService(batteryService)
+							lockAccessory.addService(batteryService)
+							this.amps[batteryService.subtype]=chargerData.maxChgCurrent
+						}
+						if(this.showControls==5 || this.showControls==4){
+							this.outlet.configureOutletService(chargerData, outletService)
+							lockAccessory.getService(Service.LockMechanism).addLinkedService(outletService)
+							lockAccessory.addService(outletService)
+						}
+						if(this.showControls==3 || this.showControls==4){
+							this.control.configureControlService(chargerData, controlService)
+							lockAccessory.getService(Service.LockMechanism).addLinkedService(controlService)
+							lockAccessory.addService(controlService)
+						}
+						if(this.showControls==1 || this.showControls==4){
+							this.basicSwitch.configureSwitchService(chargerData, switchService)
+							lockAccessory.getService(Service.LockMechanism).addLinkedService(switchService)
+							lockAccessory.addService(switchService)
+						}
+						this.accessories[uuid]=lockAccessory
+						this.api.registerPlatformAccessories(PluginName, PlatformName, [lockAccessory])
+						this.setChargerRefresh(chargerData)
+						this.getStatus(chargerData.id)
+					} else {
+						this.log.warn('%s not found in config, not added.',chargerData.name);
 					}
-					if(this.showBattery){
-						this.battery.configureBatteryService(batteryService)
-						lockAccessory.getService(Service.LockMechanism).addLinkedService(batteryService)
-						lockAccessory.addService(batteryService)
-						this.amps[batteryService.subtype]=chargerData.maxChgCurrent
-					}
-					if(this.showControls==5 || this.showControls==4){
-						this.outlet.configureOutletService(chargerData, outletService)
-						lockAccessory.getService(Service.LockMechanism).addLinkedService(outletService)
-						lockAccessory.addService(outletService)
-					}
-					if(this.showControls==3 || this.showControls==4){
-						this.control.configureControlService(chargerData, controlService)
-						lockAccessory.getService(Service.LockMechanism).addLinkedService(controlService)
-						lockAccessory.addService(controlService)
-					}
-					if(this.showControls==1 || this.showControls==4){
-						this.basicSwitch.configureSwitchService(chargerData, switchService)
-						lockAccessory.getService(Service.LockMechanism).addLinkedService(switchService)
-						lockAccessory.addService(switchService)
-					}
-					this.accessories[uuid]=lockAccessory
-					this.api.registerPlatformAccessories(PluginName, PlatformName, [lockAccessory])
-					this.setChargerRefresh(chargerData)
-					this.getStatus(chargerData.id)
 				})
 			})
 			setTimeout(()=>{this.log.info('Wallbox platform finished loading')}, 2500)
@@ -342,7 +348,7 @@ class wallboxPlatform {
 				if(car[0]){
 					this.batterySize=car[0].kwH
 				}else {
-					this.log.warn('Unable to find charger named "%s" as configured in the plugin settings for car "%s" with charger "%s". Please check your plugin settings.', wallboxChargerName, this.cars[0].carName, this.cars[0].chargerName)
+					//this.log.warn('Unable to find charger named "%s" as configured in the plugin settings for car "%s" with charger "%s". Please check your plugin settings.', wallboxChargerName, this.cars[0].carName, this.cars[0].chargerName)
 				}
 			}
 		}catch(err) {this.log.error('Error with config. \n%s', JSON.stringify(this.cars,null,2))}

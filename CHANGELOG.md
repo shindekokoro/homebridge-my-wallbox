@@ -1,13 +1,101 @@
 # Changes
 
+## 1.1.18
+Update
+- Merge with origin
+- Only load charger listed in config.
+
+## 1.1.17
+Update
+- Updated Readme
+- Code cleanup
+
+## 1.1.16
+Fix
+- Fixed slow to update warnings.
+- Fixed 401 errors from Homebridge UI, HomeKit did not experiance this issue.
+Update
+- Updated switch and outlet naming.
+- Code cleanup.
+- Bumped dependencies.
+
+## 1.1.15
+Fix
+- Fixed slow update response when attempting to pause/resume without an active session.
+
+## 1.1.14
+Fix issue #16
+- Some token TTLs are very short, 15 minutes vs 24 hours and could result in non recoverable unauthorzed messages.
+- Refactored updates to now refresh token prior to a new live update session.
+- Removed scheduled token refresh cycle.
+- Added logic to automatically sign in again if unauthorized response is recieved.
+- Removed 401 error from APi retrying, will automatically obtain new token.
+- Added config setting to log user info in normal log.
+
+## 1.1.13
+Test
+- Exposed information around token timeouts.
+
+## 1.1.12
+Update
+- Improved error handling.
+- Improved error messaging.
+- Added retry logic for some API errors.
+- Cleaned whitespace.
+
+## 1.1.10
+Fix
+- Fixed bug with token refresh (issue #16).
+Update
+- Improved error handling.
+- Bumped dependencies.
+
+## 1.1.9
+Fix
+- Fixed un-caught error.
+
+## 1.1.8
+Fix
+- Fixed bug with token refresh (issue #16).
+Update
+- Added option to suppress API responses in debug log.
+- Code cleanup.
+- Improved error handling.
+- Bumped dependencies.
+
+## 1.1.7
+Update
+- Code cleanup.
+- Bumped dependencies.
+
+## 1.1.6
+Fix
+- Fix error handling during startup when configuration has missing info.
+Update
+- Improved error handling for lock.
+- Updated Axios to address error for unexpected end of file error.
+- Bumped dependencies.
+
+## 1.1.5
+Update
+- Fix Axios error for unexpected end of file error.
+
+## 1.1.4
+Update
+- Bumped dependencies.
+
 ## 1.1.3
 Update
 - Make sure setTokenRefresh function called at least once to setInterval for login token refresh.
 - Code cleanup
+- Cleanup log messaging.
+- Option to add Humidity Sensor for Battery percentage to create HomeKit automations. (HomeKit doesn't allow for automations off of battery percentage)
+- Bumped dependencies.
 
 ## 1.1.2
 Update
 - Refresh token based off of TTL, no need for crazy calculations. Currently appears to be 24 hours.
+- Refactored token refresh logic, ttl is now 24 hours and will refresh when <2% of time is remaining.
 - Will now record count all API calls in debug log for reporting period.
 -	Added explicit user-agent info to API calls.
 -	Bumped dependencies.
