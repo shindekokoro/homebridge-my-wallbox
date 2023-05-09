@@ -40,12 +40,13 @@ basicSwitch.prototype={
 		this.wallboxapi.getChargerData(this.platform.token,device.id).then(response=>{
 			try{
 				statusCode=response.data.data.chargerData.status
+				this.log.warn(statusCode)
 				currentMode=this.enumeration.items.filter(result=>result.status == statusCode)[0].mode
+				this.log.warn(currentMode)
 				this.log.debug('checking current mode = %s',currentMode)
 			}catch(error){
 				currentMode='unknown'
 				this.log.error('failed current mode check')
-				this.log.error(response)
 			}
 			switch(currentMode){
 				case 'lockedMode':
