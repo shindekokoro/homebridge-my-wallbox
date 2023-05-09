@@ -45,6 +45,7 @@ basicSwitch.prototype={
 			}catch(error){
 				currentMode='unknown'
 				this.log.error('failed current mode check')
+				this.log.error(response)
 			}
 			switch(currentMode){
 				case 'lockedMode':
