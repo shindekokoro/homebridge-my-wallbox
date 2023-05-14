@@ -179,6 +179,12 @@
 			"altText":"Unlock charger to start session",
 			"mode":"lockedMode"
 		},
+		{"status":401,
+			"statusDescription":"Your token is expired, please renew it.",
+			"text":"unauthorized",
+			"altText":"",
+			"mode":"errorMode"
+		},
 		{"status":403,
 			"statusDescription":"Wrong current status to start charging action",
 			"text":"Wrong current status to start charging action",
