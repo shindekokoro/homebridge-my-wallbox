@@ -87,24 +87,27 @@ class wallboxPlatform {
 			}
 			// get signin & token
 			let signin=await this.wallboxapi.signin(this.email, this.password).catch(err=>{this.log.error('Failed to get signin for build. \n%s', err)})
-			this.log.debug('Found user ID %s', signin.data.attributes.user_id)
-			//this.log.debug('Found token %s', signin.data.attributes.token)
-			this.log.debug('Found token  %s********************%s', signin.data.attributes.token.substring(0,35),signin.data.attributes.token.substring((signin.data.attributes.token).length-35))
-			this.log.debug('Found refresh token  %s********************%s', signin.data.attributes.refresh_token.substring(0,35),signin.data.attributes.refresh_token.substring((signin.data.attributes.refresh_token).length-35))
 			this.id=signin.data.attributes.user_id
 			this.token=signin.data.attributes.token
 			this.refreshToken=signin.data.attributes.refresh_token
+			this.refreshTtl
 			this.ttl=signin.data.attributes.ttl
 			this.ttlTime=Math.round((signin.data.attributes.ttl-Date.now())/60/1000)
+
+			this.log.debug('Found user ID %s', this.id)
+			//this.log.debug('Found token %s', signin.data.attributes.token)
+			this.log.debug('Found token  %s********************%s', this.token.substring(0,35), this.token.substring((this.token).length-35))
+			this.log.debug('Found refresh token  %s********************%s', this.refreshToken.substring(0,35), this.refreshToken.substring((this.refreshToken).length-35))
+
 			if(this.showUserMessages){
 				this.log.info('Current time ',new Date(Date.now()).toLocaleString())
-				this.log.info('Token will expire on %s, %s minutes ',new Date(signin.data.attributes.ttl).toLocaleString(), Math.round((signin.data.attributes.ttl-Date.now())/60/1000))
-				this.log.info('Refresh Token will expire on %s, %s days ',new Date(signin.data.attributes.refresh_token_ttl).toLocaleString(), Math.round((signin.data.attributes.refresh_token_ttl-Date.now())/24/60/60/1000))
+				this.log.info('Token will expire on %s, %s minutes ',new Date(this.ttl).toLocaleString(), Math.round((this.ttl-Date.now())/60/1000))
+				this.log.info('Refresh Token will expire on %s, %s days ',new Date(this.refreshTtl).toLocaleString(), Math.round((this.refreshTtl-Date.now())/24/60/60/1000))
 				}
 			else{
 				this.log.debug('Current time ',new Date(Date.now()).toLocaleString())
-				this.log.debug('Token will expire on %s, %s minutes ',new Date(signin.data.attributes.ttl).toLocaleString(), Math.round((signin.data.attributes.ttl-Date.now())/60/1000))
-				this.log.debug('Refresh Token will expire on %s, %s days ',new Date(signin.data.attributes.refresh_token_ttl).toLocaleString(), Math.round((signin.data.attributes.refresh_token_ttl-Date.now())/24/60/60/1000))
+				this.log.debug('Token will expire on %s, %s minutes ',new Date(this.ttl).toLocaleString(), Math.round((this.ttl-Date.now())/60/1000))
+				this.log.debug('Refresh Token will expire on %s, %s days ',new Date(this.refreshTtl).toLocaleString(), Math.round((this.refreshTtl-Date.now())/24/60/60/1000))
 				}
 			//this.setTokenRefresh(signin.data.attributes.ttl) //disabled for new ondemand method
 			//get get user id
@@ -142,7 +145,7 @@ class wallboxPlatform {
 					//loop each charger
 					let chargerData=await this.wallboxapi.getChargerData(this.token, charger).catch(err=>{this.log.error('Failed to get charger data for build. \n%s', err)})
 					let chargerName = this.cars.filter(car=>(car.chargerName==chargerData.name))
-					
+
 					if(chargerName[0]){
 						let uuid = UUIDGen.generate(chargerData.uid);
 						let chargerConfig=await this.wallboxapi.getChargerConfig(this.token, charger).catch(err=>{this.log.error('Failed to get charger configs for build. \n%s', err)})
@@ -242,40 +245,49 @@ class wallboxPlatform {
 	}
 	*/
 	async getNewToken(token){
+		if(this.ttl > Date.now()){
+			return 'Token current, new token not needed.';
+		} else {
+			this.log.info('Current token has expired, refreshing.')
+		}
 		try{
 			let refresh=await this.wallboxapi.refresh(token).catch(err=>{this.log.error('Failed to refresh token. \n%s', err)})
 			if(refresh.status==200){
-				if(this.showUserMessages){
-					this.log.info('Updated token  %s********************%s', refresh.data.data.attributes.token.substring(0,35),refresh.data.data.attributes.token.substring((refresh.data.data.attributes.token).length-35))
-					this.log.info('Updated refresh token  %s********************%s', refresh.data.data.attributes.refresh_token.substring(0,35),refresh.data.data.attributes.refresh_token.substring((refresh.data.data.attributes.refresh_token).length-35))
-				}
-				else{
-					this.log.debug('Updated token  %s********************%s', refresh.data.data.attributes.token.substring(0,35),refresh.data.data.attributes.token.substring((refresh.data.data.attributes.token).length-35))
-					this.log.debug('Updated refresh token  %s********************%s', refresh.data.data.attributes.refresh_token.substring(0,35),refresh.data.data.attributes.refresh_token.substring((refresh.data.data.attributes.refresh_token).length-35))
-				}
 				this.id=refresh.data.data.attributes.user_id
 				this.token=refresh.data.data.attributes.token
 				this.refreshToken=refresh.data.data.attributes.refresh_token
 				this.ttl=refresh.data.data.attributes.ttl
 				this.ttlTime=Math.round((refresh.data.data.attributes.ttl-Date.now())/60/1000)
 				//this.setTokenRefresh(refresh.data.data.attributes.ttl) //disabled
+
+				if(this.showUserMessages){
+					this.log.info('Updated token  %s********************%s', this.token.substring(0,35), this.token.substring((this.token).length-35))
+					this.log.info('Updated refresh token  %s********************%s', this.refreshToken.substring(0,35), this.refreshToken.substring((this.refreshToken).length-35))
+				}
+				else{
+					this.log.debug('Updated token  %s********************%s', this.token.substring(0,35), this.token.substring((this.token).length-35))
+					this.log.debug('Updated refresh token  %s********************%s', this.refreshToken.substring(0,35),this.refreshToken.substring((this.refreshToken).length-35))
+				}
+
 				return 'Refreshed exsisting token'
 			}
 			if(refresh.status==401){
 				let signin=await this.wallboxapi.signin(this.email, this.password).catch(err=>{this.log.error('Failed to get signin for build. \n%s', err)})
-				if(this.showUserMessages){
-					this.log.info('New token %s********************%s', signin.data.attributes.token.substring(0,35),signin.data.attributes.token.substring((signin.data.attributes.token).length-35))
-					this.log.info('New refresh token  %s********************%s', signin.data.attributes.refresh_token.substring(0,35),signin.data.attributes.refresh_token.substring((signin.data.attributes.refresh_token).length-35))
-				}
-				else{
-					this.log.debug('New token  %s********************%s', signin.data.attributes.token.substring(0,35),signin.data.attributes.token.substring((signin.data.attributes.token).length-35))
-					this.log.debug('New refresh token  %s********************%s', signin.data.attributes.refresh_token.substring(0,35),signin.data.attributes.refresh_token.substring((signin.data.attributes.refresh_token).length-35))
-				}
 				this.id=signin.data.attributes.user_id
 				this.token=signin.data.attributes.token
 				this.refreshToken=signin.data.attributes.refresh_token
 				this.ttl=signin.data.attributes.ttl
 				this.ttlTime=Math.round((signin.data.attributes.ttl-Date.now())/60/1000)
+
+				if(this.showUserMessages){
+					this.log.info('New token %s********************%s', this.token.substring(0,35), this.token.substring((this.token).length-35))
+					this.log.info('New refresh token  %s********************%s', this.refreshToken.substring(0,35),this.refreshToken.substring((this.refreshToken).length-35))
+				}
+				else{
+					this.log.debug('New token  %s********************%s', this.token.substring(0,35), this.token.substring((this.token).length-35))
+					this.log.debug('New refresh token  %s********************%s', this.refreshToken.substring(0,35), this.refreshToken.substring((this.refreshToken).length-35))
+				}
+
 				return 'Retrieved new token'
 			}
 			return 'Failed to update token'

@@ -361,7 +361,7 @@ wallboxAPI.prototype={
 					responseType: 'json'
 			}).catch(err=>{
 				this.log.debug(JSON.stringify(err,null,2))
-				this.log.error('Error locking charger config %s', err.message)
+				this.log.error('Error locking charger config: %s', err.message)
 				if(err.response){this.log.warn(JSON.stringify(err.response.data,null,2))}
 				return err.response
 			})
