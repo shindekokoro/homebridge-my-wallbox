@@ -4,6 +4,9 @@
 Update
 - Merge with origin
 - Only load charger listed in config.
+- Added support for node.js v20.
+- Removed support for node.js v14.
+- Bumped dependencies.
 
 ## 1.1.17
 Update
@@ -13,7 +16,7 @@ Update
 ## 1.1.16
 Fix
 - Fixed slow to update warnings.
-- Fixed 401 errors from Homebridge UI, HomeKit did not experiance this issue.
+- Fixed 401 errors from Homebridge UI, HomeKit did not experience this issue.
 Update
 - Updated switch and outlet naming.
 - Code cleanup.
@@ -25,10 +28,10 @@ Fix
 
 ## 1.1.14
 Fix issue #16
-- Some token TTLs are very short, 15 minutes vs 24 hours and could result in non recoverable unauthorzed messages.
+- Some token TTLs are very short, 15 minutes vs 24 hours and could result in non recoverable unauthorized messages.
 - Refactored updates to now refresh token prior to a new live update session.
 - Removed scheduled token refresh cycle.
-- Added logic to automatically sign in again if unauthorized response is recieved.
+- Added logic to automatically sign in again if unauthorized response is received.
 - Removed 401 error from APi retrying, will automatically obtain new token.
 - Added config setting to log user info in normal log.
 
@@ -147,7 +150,7 @@ Update
 ## 1.0.12
 
 Update
--	Added support for new status message.
+- Added support for new status message.
 - Cleaned up some error messaging
 
 ## 1.0.11
@@ -165,7 +168,7 @@ Update
 
 ## 1.0.8 -beta
 Update
--	Code cleanup
+- Code cleanup
 - bumped dependencies
 - corrected benign unknown device warning message.
 
