@@ -26,8 +26,8 @@
 				"placeholder": "password",
 				"required": true
 			},
-			"refreshRate": {
-				"title": "Hourly Refresh Rate",
+			"refreshInterval": {
+				"title": "Hourly Refresh Interval",
 				"description": "Polling time in hours to refresh data. Default 24",
 				"type": "integer",
 				"minimum": 1,
@@ -46,39 +46,38 @@
 			},
 			"liveRefreshRate": {
 				"title": "Live Refresh Rate",
-				"description": "Polling time in seconds to refresh data during an active session. Default 20 <br>Setting this less than 20 seconds may casue display to toggle back once if the car is slow to respond.",
+				"description": "Polling time in seconds to refresh data during an active session. Default 20 <br>Setting this less than 20 seconds may cause display to toggle back once if the car is slow to respond.",
 				"type": "integer",
 				"minimum": 5,
 				"maximum": 30,
 				"required": true,
 				"default": 20
 			},
-
 			"cars": {
-        "title": "Cars",
-        "type": "array",
-        "required": true,
-        "items": {
-          "title": "Car Info",
-          "type": "object",
-          "properties": {
+				"title": "Cars",
+				"type": "array",
+				"required": true,
+				"items": {
+					"title": "Car Info",
+					"type": "object",
+					"properties": {
 						"carName": {
-              "title": "Name of your Car",
-              "type": "string",
-              "minLength": 3,
-              "required": false,
+							"title": "Name of your Car",
+							"type": "string",
+							"minLength": 3,
+							"required": false,
 							"placeholder": "My EV"
-            },
-            "chargerName": {
-              "title": "Name of your Charger used for this car, reference the logging for exact names",
-              "type": "string",
-              "minLength": 3,
-              "required": false,
+						},
+						"chargerName": {
+							"title": "Name of your Charger used for this car, reference the logging for exact names",
+							"type": "string",
+							"minLength": 3,
+							"required": false,
 							"placeholder": "Wallbox"
-            },
-            "kwH": {
-              "title": "Battery Size in kwH for this car",
-              "type": "integer",
+						},
+						"kwH": {
+							"title": "Battery Size in kwH for this car",
+							"type": "integer",
 							"required": false,
 							"placeholder": 78
 						}
@@ -86,17 +85,17 @@
 				}
 			},
 			"locationName": {
-        "title": "Location Name",
-        "type": "string",
-        "required": false,
-        "placeholder": "Leave blank for all locations"
-      },
+				"title": "Location Name",
+				"type": "string",
+				"required": false,
+				"placeholder": "Leave blank for all locations"
+			},
 			"showControls": {
 				"title": "Show Charger Controls",
 				"type": "integer",
 				"required": true,
 				"default": 0,
-				"description": "Select the controls to display in Homkit.",
+				"description": "Select the controls to display in HomeKit.",
 				"oneOf": [
 					{
 						"title": "Lock Only",
@@ -119,6 +118,27 @@
 						"enum": [7]
 					}
 				]
+			},
+			"socSensor": {
+				"title": "State of Charge Sensor",
+				"type": "boolean",
+				"required": false,
+				"default": false,
+				"description": "Do you want to create a Humidity Sensor for automations based on battery level?"
+			},
+			"showAPIMessages": {
+				"title": "Show API responses",
+				"type": "boolean",
+				"required": false,
+				"default": false,
+				"description": "Do you want to log API response messages?"
+			},
+			"showUserMessages": {
+				"title": "Show User messages",
+				"type": "boolean",
+				"required": false,
+				"default": false,
+				"description": "Do you want to log user related messages in information log, if uncheck these will be logged to debug log. This may be useful for troubleshooting."
 			}
 		}
 	},
@@ -148,7 +168,7 @@
 		},
 		{
       "type": "help",
-      "helpvalue": "<h6><b>Location Support</b></h6><p class='help-block'> If you have more than one location and want to display them in separate Homebridge/HomeKit homes you can retrive only the devices at this loction name otherwise leave blank.<br/>The location must match the location configured in the Wallbox app, review the log file to see the adresses as configured in the WallBox app.</p>"
+      "helpvalue": "<h6><b>Location Support</b></h6><p class='help-block'> If you have more than one location and want to display them in separate Homebridge/HomeKit homes you can retrieve only the devices at this location name otherwise leave blank.<br/>The location must match the location configured in the Wallbox app, review the log file to see the addresses as configured in the WallBox app.</p>"
     },
     {
       "type": "flex",
@@ -159,7 +179,7 @@
     },
 		{
       "type": "help",
-			"helpvalue": "<h6><b>Charging Estimate</b></h6><p class='help-block'> The plugin will attempt to calulate in real time the percent charge added based on these values for each car. If no car is added then the display of a battery service will be supressed.<br/></p>"
+			"helpvalue": "<h6><b>Charging Estimate</b></h6><p class='help-block'> The plugin will attempt to calculate in real time the percent charge added based on these values for each car. If no car is added then the display of a battery service will be suppressed.<br/></p>"
     },
 		{
 			"key": "cars",
@@ -179,15 +199,33 @@
 			]
 		},
 		{
+			"type": "flex",
+			"flex-flow": "row wrap",
+			"items": [
+				"socSensor"
+			]
+		},
+		{
 			"type": "fieldset",
 			"title": "Advanced",
 			"description": "Expand to adjust polling timers",
 			"expandable": true,
 			"flex-flow": "row wrap",
 			"items": [
-				"refreshRate",
+				"refreshInterval",
 				"liveRefreshTimeout",
 				"liveRefreshRate"
+			]
+		},
+		{
+			"type": "fieldset",
+			"title": "Debug logging",
+			"description": "Expand to enable additional debug logging",
+			"expandable": true,
+			"flex-flow": "row wrap",
+			"items": [
+				"showAPIMessages",
+				"showUserMessages"
 			]
 		}
 	]
