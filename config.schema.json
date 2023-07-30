@@ -99,23 +99,33 @@
 				"oneOf": [
 					{
 						"title": "Lock Only",
-						"enum": [0]
+						"enum": [
+							0
+						]
 					},
 					{
 						"title": "Lock with Start/Pause as Switch",
-						"enum": [1]
+						"enum": [
+							1
+						]
 					},
 					{
 						"title": "Lock with Start/Pause as Outlet",
-						"enum": [5]
+						"enum": [
+							5
+						]
 					},
 					{
 						"title": "Full Control in the form of a Fahrenheit Thermostat",
-						"enum": [3]
+						"enum": [
+							3
+						]
 					},
 					{
 						"title": "Full Control in the form of a Celsius Thermostat",
-						"enum": [7]
+						"enum": [
+							7
+						]
 					}
 				]
 			},
@@ -167,20 +177,20 @@
 			]
 		},
 		{
-      "type": "help",
-      "helpvalue": "<h6><b>Location Support</b></h6><p class='help-block'> If you have more than one location and want to display them in separate Homebridge/HomeKit homes you can retrieve only the devices at this location name otherwise leave blank.<br/>The location must match the location configured in the Wallbox app, review the log file to see the addresses as configured in the WallBox app.</p>"
-    },
-    {
-      "type": "flex",
-      "flex-flow": "row wrap",
-      "items": [
-        "locationName"
-      ]
-    },
+			"type": "help",
+			"helpvalue": "<h6><b>Location Support</b></h6><p class='help-block'> If you have more than one location and want to display them in separate Homebridge/HomeKit homes you can retrieve only the devices at this location name otherwise leave blank.<br/>The location must match the location configured in the Wallbox app, review the log file to see the addresses as configured in the WallBox app.</p>"
+		},
 		{
-      "type": "help",
+			"type": "flex",
+			"flex-flow": "row wrap",
+			"items": [
+				"locationName"
+			]
+		},
+		{
+			"type": "help",
 			"helpvalue": "<h6><b>Charging Estimate</b></h6><p class='help-block'> The plugin will attempt to calculate in real time the percent charge added based on these values for each car. If no car is added then the display of a battery service will be suppressed.<br/></p>"
-    },
+		},
 		{
 			"key": "cars",
 			"type": "tabarray",
@@ -189,7 +199,7 @@
 				"cars[].carName",
 				"cars[].chargerName",
 				"cars[].kwH"
-					]
+			]
 		},
 		{
 			"type": "flex",
