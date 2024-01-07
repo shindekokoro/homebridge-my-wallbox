@@ -1,5 +1,20 @@
 # Changes
 
+## 1.1.21
+Fix
+-  Fix bug with pause switch/outlet.
+-  Bumped dependencies.
+
+## 1.1.20
+Update
+-  Minor code cleanup
+-  Fix model type characteritic.
+-  Added support for cached accessories
+
+## 1.1.19
+Update
+-  Bumped dependencies.
+
 ## 1.1.18
 Update
 - Merge with origin
