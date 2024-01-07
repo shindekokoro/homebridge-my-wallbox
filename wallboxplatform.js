@@ -247,14 +247,7 @@ class wallboxPlatform {
                     err
                   );
                 });
-              if (this.accessories[uuid]) {
-                this.api.unregisterPlatformAccessories(
-                  PluginName,
-                  PlatformName,
-                  [this.accessories[uuid]]
-                );
-                delete this.accessories[uuid];
-              }
+
               this.log.debug('Registering platform accessory');
 
               let lockAccessory = this.lockMechanism.createLockAccessory(
@@ -262,12 +255,8 @@ class wallboxPlatform {
                 chargerConfig,
                 uuid
               );
-              let lockService = lockAccessory.getService(
-                Service.LockMechanism
-              );
-
+              let lockService = lockAccessory.getService(Service.LockMechanism);
               this.lockMechanism.configureLockService(chargerData, lockService);
-              lockAccessory.addService(lockService);
 
               let sensorService = this.sensor.createSensorService(
                 chargerData,
