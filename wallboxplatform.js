@@ -255,7 +255,8 @@ class wallboxPlatform {
                 chargerConfig,
                 uuid
               );
-              let lockService = lockAccessory.getService(Service.LockMechanism);
+              let lockService =
+                this.lockMechanism.createLockService(chargerData);
               this.lockMechanism.configureLockService(chargerData, lockService);
 
               let sensorService = this.sensor.createSensorService(
