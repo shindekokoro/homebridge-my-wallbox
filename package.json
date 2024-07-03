@@ -1,6 +1,6 @@
 {
 	"name": "homebridge-my-wallbox",
-	"version": "1.1.18",
+	"version": "1.1.21",
 	"description": "Wallbox Charger platform plugin for [Homebridge](https://github.com/nfarina/homebridge).",
 	"main": "index.js",
 	"dependencies": {
@@ -16,7 +16,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/valiquette/homebridge-my-wallbox"
+		"url": "git+https://github.com/shindekokoro/homebridge-my-wallbox"
 	},
 	"keywords": [
 		"homebridge-plugin",
@@ -24,10 +24,10 @@
 		"EV charger",
 		"wallbox"
 	],
-	"author": "John Valiquette",
+	"author": "John Valiquette, Brian Whisler",
 	"license": "MIT",
 	"bugs": {
-		"url": "https://github.com/valiquette/homebridge-my-wallbox/issues"
+		"url": "https://github.com/shindekokoro/homebridge-my-wallbox/issues"
 	},
-	"homepage": "https://github.com/valiquette/homebridge-my-wallbox#readme"
+	"homepage": "https://github.com/shindekokoro/homebridge-my-wallbox#readme"
 }
