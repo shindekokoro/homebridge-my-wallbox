@@ -9,7 +9,6 @@ let control=require('./devices/control')
 let enumeration=require('./enumerations')
 
 class wallboxPlatform {
-
 	constructor(log, config, api){
 		this.wallboxapi=new wallboxAPI(this, log)
 		this.lockMechanism=new lockMechanism(this, log)
@@ -47,6 +46,7 @@ class wallboxPlatform {
 		this.showUserMessages=config.showUserMessages ? config.showUserMessages : false
 		this.id
 		this.userId
+		this.model_name
 		this.cars=config.cars
 		this.locationName=config.locationName
 		this.locationMatch
@@ -68,7 +68,7 @@ class wallboxPlatform {
 					this.getDevices()
 				}.bind(this))
 			}
-			}
+		}
 	
 		identify(){
 			this.log.info('Identify wallbox!')
@@ -105,7 +105,6 @@ class wallboxPlatform {
 				this.log.debug('Token will expire on %s, %s minutes ',new Date(signin.data.attributes.ttl).toLocaleString(), Math.round((signin.data.attributes.ttl-Date.now())/60/1000))
 				this.log.debug('Refresh Token will expire on %s, %s days ',new Date(this.refreshTtl).toLocaleString(), Math.round((this.refreshTtl-Date.now())/24/60/60/1000))
 				}
-			//this.setTokenRefresh(signin.data.attributes.ttl) //disabled for new ondemand method
 			//get get user id
 			let userId=await this.wallboxapi.getId(this.token, this.id).catch(err=>{this.log.error('Failed to get userId for build. \n%s', err)})
 			this.log.debug('Found user ID %s', userId.data.attributes.value)
@@ -114,7 +113,10 @@ class wallboxPlatform {
 			let groups=await this.wallboxapi.getChargerGroups(this.token).catch(err=>{this.log.error('Failed to get groups for build. \n%s', err)})
 			groups.result.groups.forEach((group)=>{
 				this.log.info('Found group for %s ', group.name)
-				group.chargers.forEach((charger)=>{
+				group.chargers.forEach(async(charger)=>{
+					//get model info
+					let chargerInfo=await this.wallboxapi.getCharger(this.token, group.uid).catch(err=>{this.log.error('Failed to get charger info for build. \n%s', err)})
+					this.model_name=chargerInfo.data[0].attributes.model_name
 					this.log.info('Found charger %s with software %s',charger.name, charger.software.currentVersion)
 					if(charger.software.updateAvailable){
 						this.log.warn('%s software update %s is available',charger.name, charger.software.latestVersion)
@@ -140,9 +142,9 @@ class wallboxPlatform {
 				accessConfig.chargers.forEach(async(charger)=>{
 					//loop each charger
 					let chargerData=await this.wallboxapi.getChargerData(this.token, charger).catch(err=>{this.log.error('Failed to get charger data for build. \n%s', err)})
-					let chargerName = this.cars.filter(car=>(car.chargerName==chargerData.name))
 
-					if(chargerName[0]){
+          let chargerName = this.cars.filter(car=>(car.chargerName==chargerData.name))
+          if(chargerName[0]){
 						let uuid = UUIDGen.generate(chargerData.uid);
 						let chargerConfig=await this.wallboxapi.getChargerConfig(this.token, charger).catch(err=>{this.log.error('Failed to get charger configs for build. \n%s', err)})
 						if(this.accessories[uuid]){
@@ -152,15 +154,15 @@ class wallboxPlatform {
 						this.log.debug('Registering platform accessory')
 
 						let lockAccessory=this.lockMechanism.createLockAccessory(chargerData,chargerConfig,uuid)
-						let lockService=this.lockMechanism.createLockService(chargerData)
+						//let lockService=this.lockMechanism.createLockService(chargerData)
 						this.lockMechanism.configureLockService(chargerData, lockService)
 						lockAccessory.addService(lockService)
 
 						let sensorService=this.sensor.createSensorService(chargerData,'SOC')
 						let batteryService=this.battery.createBatteryService(chargerData)
-						let outletService=this.outlet.createOutletService(chargerData,'Start/Pause')
+						let outletService=this.outlet.createOutletService(chargerData,'Charging')
 						let controlService=this.control.createControlService(chargerData,'Charging Amps')
-						let switchService=this.basicSwitch.createSwitchService(chargerData,'Start/Pause')
+						let switchService=this.basicSwitch.createSwitchService(chargerData,'Charging')
 
 						if(this.showSensor){
 							this.sensor.configureSensorService(chargerData,sensorService)
@@ -212,34 +214,6 @@ class wallboxPlatform {
 		}
 	}
 
-
-	// setTokenRefresh(ttl){
-  //   let refreshTime = ttl-Date.now();
-  //   let refreshMinutes = Math.round(refreshTime/1000/60);
-  //   this.log.info('Setting login token refresh rate. %s minutes', refreshMinutes);
-  //   setInterval(async()=>{
-  //     if(ttl <= Date.now()){ // if ttl has past the current time, refresh the token.
-  //       try{
-  //         let signin=await this.wallboxapi.signin(this.email,this.password).catch(err=>{this.log.error('Failed to refresh token', err)})
-  //         this.log.debug('Refreshed token %s',signin.data.data.attributes.token)
-  //         this.token=signin.data.data.attributes.token
-  //         this.log.info('Token has been refreshed')
-  //       }
-  //       catch(err){this.log.error('Failed to refresh token', err)}
-  //     }
-  //     else{
-	// 			this.log.warn('Token not expired yet')
-	// 		}
-  //   }, refreshTime) // ttl time - current time should always refresh token when expired.
-
-	/*
-	setTokenRefresh(ttl){ // no longer called
-			ttl=Math.round((ttl-Date.now())/1000)
-			setTimeout(async()=>{
-			this.getNewToken(this.refreshToken)
-		},ttl*1000*.9) //will refresh with  ~2.4 hours before a 24 hour clock expires
-	}
-	*/
 	async getNewToken(token){
 		if(this.ttl > Date.now()){
 			return 'Token current, new token not needed.';
@@ -262,7 +236,6 @@ class wallboxPlatform {
 				this.refreshToken=refresh.data.data.attributes.refresh_token
 				this.ttl=refresh.data.data.attributes.ttl
 				this.ttlTime=Math.round((refresh.data.data.attributes.ttl-Date.now())/60/1000)
-				//this.setTokenRefresh(refresh.data.data.attributes.ttl) //disabled
 				return 'Refreshed exsisting token'
 			}
 			if(refresh.status==401){
@@ -318,7 +291,8 @@ class wallboxPlatform {
 			if(this,this.showUserMessages){
 				this.log.info('Starting live update')
 				this.log.info(x)
-			}else{
+			}
+			else{
 				this.log.debug('Starting live update')
 				this.log.debug(x)
 			}
@@ -330,7 +304,7 @@ class wallboxPlatform {
 				if(new Date().getTime() - startTime > this.liveTimeout*60*1000){
 					clearInterval(interval)
 					this.liveUpdate=false
-					if(this,this.showUserMessages){
+					if(this.showUserMessages){
 						this.log.info('Live update stopped')
 					}
 					else{
@@ -351,7 +325,8 @@ class wallboxPlatform {
 				let car=this.cars.filter(charger=>(charger.chargerName==wallboxChargerName))
 				if(car[0]){
 					this.batterySize=car[0].kwH
-				}else {
+				}
+				else{
 					this.log.warn('Unable to find charger named "%s" as configured in the plugin settings for car "%s" with charger "%s". Please check your plugin settings.', wallboxChargerName, this.cars[0].carName, this.cars[0].chargerName)
 				}
 			}
@@ -481,7 +456,5 @@ class wallboxPlatform {
     this.log.debug('Found cached accessory %s', accessory.displayName)
     this.accessories[accessory.UUID]=accessory
   }
-
 }
-
 module.exports=wallboxPlatform

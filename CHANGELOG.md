@@ -1,5 +1,31 @@
 # Changes
 
+## 1.1.23
+Update
+-  Bumped dependencies.
+-  Updated header info for API call
+-  Renamed Start/pause to Charging
+
+## 1.1.22
+Update
+-  Bumped dependencies.
+-  homebridge 2.0 support
+
+## 1.1.21
+Fix
+-  Fix bug with pause switch/outlet.
+-  Bumped dependencies.
+
+## 1.1.20
+Update
+-  Minor code cleanup
+-  Fix model type characteritic.
+-  Added support for cached accessories
+
+## 1.1.19
+Update
+-  Bumped dependencies.
+
 ## 1.1.18
 Update
 - Merge with origin
