@@ -147,15 +147,14 @@ class wallboxPlatform {
           if(chargerName[0]){
 						let uuid = UUIDGen.generate(chargerData.uid);
 						let chargerConfig=await this.wallboxapi.getChargerConfig(this.token, charger).catch(err=>{this.log.error('Failed to get charger configs for build. \n%s', err)})
-            console.log(this.accessories);
-            
+                        
 						if(this.accessories[uuid]){
 							this.api.unregisterPlatformAccessories(PluginName, PlatformName, [this.accessories[uuid]])
 							delete this.accessories[uuid]
 						}
 						this.log.debug('Registering platform accessory')
-
-						let lockAccessory=this.lockMechanism.createLockAccessory(chargerData,chargerConfig,uuid)
+            console.log(this.accessories);
+						let lockAccessory=this.lockMechanism.createLockAccessory(chargerData,chargerConfig,uuid,this.accessories[uuid])
 						let lockService=this.lockAccessory.getService(Service.LockMechanism)
 						this.lockMechanism.configureLockService(chargerData, lockService)
 						lockAccessory.addService(lockService)
