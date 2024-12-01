@@ -160,28 +160,29 @@ class wallboxPlatform {
 						if(this.showSensor){
 							this.sensor.configureSensorService(chargerData,sensorService)
 							lockAccessory.getService(Service.LockMechanism).addLinkedService(sensorService)
-							lockAccessory.addService(sensorService)
+              this.log.warn(lockAccessory.getService(sensorService))
+							// lockAccessory.addService(sensorService)
 						}
 						if(this.showBattery){
 							this.battery.configureBatteryService(batteryService)
 							lockAccessory.getService(Service.LockMechanism).addLinkedService(batteryService)
-							lockAccessory.addService(batteryService)
+							// lockAccessory.addService(batteryService)
 							this.amps[batteryService.subtype]=chargerData.maxChgCurrent
 						}
 						if(this.showControls==5 || this.showControls==4){
 							this.outlet.configureOutletService(chargerData, outletService)
 							lockAccessory.getService(Service.LockMechanism).addLinkedService(outletService)
-							lockAccessory.addService(outletService)
+							// lockAccessory.addService(outletService)
 						}
 						if(this.showControls==3 || this.showControls==4){
 							this.control.configureControlService(chargerData, controlService)
 							lockAccessory.getService(Service.LockMechanism).addLinkedService(controlService)
-							lockAccessory.addService(controlService)
+							// lockAccessory.addService(controlService)
 						}
 						if(this.showControls==1 || this.showControls==4){
 							this.basicSwitch.configureSwitchService(chargerData, switchService)
 							lockAccessory.getService(Service.LockMechanism).addLinkedService(switchService)
-							lockAccessory.addService(switchService)
+							// lockAccessory.addService(switchService)
 						}
 
             if(!this.accessories[uuid]){
