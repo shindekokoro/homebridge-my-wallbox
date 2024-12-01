@@ -154,7 +154,7 @@ class wallboxPlatform {
 						this.log.debug('Registering platform accessory')
 
 						let lockAccessory=this.lockMechanism.createLockAccessory(chargerData,chargerConfig,uuid)
-						//let lockService=this.lockMechanism.createLockService(chargerData)
+						let lockService=this.lockMechanism.createLockService(chargerData)
 						this.lockMechanism.configureLockService(chargerData, lockService)
 						lockAccessory.addService(lockService)
 
