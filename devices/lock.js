@@ -92,7 +92,7 @@ class lockMechanism {
 		else {
 			if (value == true) {
 				this.log.info('%s locked', lockService.getCharacteristic(Characteristic.Name).value)
-				lockService.getCharacteristic(Characteristic.LockCurrentState).updatevalue(Characteristic.LockCurrentState.SECURED)
+				lockService.getCharacteristic(Characteristic.LockCurrentState).updateValue(Characteristic.LockCurrentState.SECURED)
 			}
 			else {
 				this.log.info('%s unlocked', lockService.getCharacteristic(Characteristic.Name).value)
