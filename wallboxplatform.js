@@ -142,19 +142,15 @@ class wallboxPlatform {
 				accessConfig.chargers.forEach(async(charger)=>{
 					//loop each charger
 					let chargerData=await this.wallboxapi.getChargerData(this.token, charger).catch(err=>{this.log.error('Failed to get charger data for build. \n%s', err)})
-
           let chargerName = this.cars.filter(car=>(car.chargerName==chargerData.name))
           if(chargerName[0]){
-						let uuid = UUIDGen.generate(chargerData.uid);
-						let chargerConfig=await this.wallboxapi.getChargerConfig(this.token, charger).catch(err=>{this.log.error('Failed to get charger configs for build. \n%s', err)})
-                        
-						this.log.debug('Registering platform accessory')
-						let lockAccessory=this.lockMechanism.createLockAccessory(chargerData,chargerConfig,uuid,this.accessories[uuid])
-						let lockService=lockAccessory.getService(Service.LockMechanism)
-						this.lockMechanism.configureLockService(chargerData, lockService)
-            this.warn(lockService)
-						lockAccessory.addService(lockService)
-
+            let uuid=UUIDGen.generate(chargerData.uid)
+            let chargerConfig=await this.wallboxapi.getChargerConfig(this.token, charger).catch(err=>{this.log.error('Failed to get charger configs for build. \n%s', err)})
+            let lockAccessory=this.lockMechanism.createLockAccessory(chargerData,chargerConfig,uuid,this.accessories[uuid])
+  					let lockService=lockAccessory.getService(Service.LockMechanism)
+	  				//this.lockMechanism.createLockService(chargerData)
+		  			this.lockMechanism.configureLockService(chargerData, lockService)
+					
 						let sensorService=this.sensor.createSensorService(chargerData,'SOC')
 						let batteryService=this.battery.createBatteryService(chargerData)
 						let outletService=this.outlet.createOutletService(chargerData,'Charging')
@@ -187,10 +183,14 @@ class wallboxPlatform {
 							lockAccessory.getService(Service.LockMechanism).addLinkedService(switchService)
 							lockAccessory.addService(switchService)
 						}
-						this.accessories[uuid]=lockAccessory
-						this.api.registerPlatformAccessories(PluginName, PlatformName, [lockAccessory])
-						this.setChargerRefresh(chargerData)
-						this.getStatus(chargerData.id)
+
+            if(!this.accessories[uuid]){
+              this.log.debug('Registering platform accessory')
+              this.accessories[uuid]=lockAccessory
+              this.api.registerPlatformAccessories(PluginName, PlatformName, [lockAccessory])
+            }
+            this.setChargerRefresh(chargerData)
+            this.getStatus(chargerData.id)
 					} else {
 						this.log.warn('%s not found in config, not added.',chargerData.name);
 					}
