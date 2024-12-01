@@ -149,7 +149,6 @@ class wallboxPlatform {
 						let chargerConfig=await this.wallboxapi.getChargerConfig(this.token, charger).catch(err=>{this.log.error('Failed to get charger configs for build. \n%s', err)})
                         
 						this.log.debug('Registering platform accessory')
-            log(this.accessories);
 						let lockAccessory=this.lockMechanism.createLockAccessory(chargerData,chargerConfig,uuid,this.accessories[uuid])
 						let lockService=lockAccessory.getService(Service.LockMechanism)
 						this.lockMechanism.configureLockService(chargerData, lockService)
