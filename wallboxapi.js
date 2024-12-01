@@ -237,7 +237,7 @@ class wallboxAPI {
 				return err.response
 			})
 			if(response.status==200){
-				if(this.platform.showAPIMessages){this.log.debug('get chargerdata response',JSON.stringify(response.data,null,2))}
+				if(this.platform.showAPIMessages){this.log.debug('get chargerData response',JSON.stringify(response.data,null,2))}
 				return response.data
 			}
 		}catch(err) {this.log.error('Error retrieving charger \n%s', err)}

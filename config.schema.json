@@ -124,7 +124,7 @@
 				"type": "boolean",
 				"required": false,
 				"default": false,
-				"description": "Do you want to create a Humidity Sensor for automations based on battery level?"
+				"description": "Do you want to create a Humidity Sensor for automatons based on battery level?"
 			},
 			"showAPIMessages": {
 				"title": "Show API responses",

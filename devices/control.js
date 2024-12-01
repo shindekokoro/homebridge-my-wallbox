@@ -146,13 +146,13 @@ class control {
 					break
 				case 'firmwareUpdate':
 				case 'errorMode':
-					this.log.info('This opertation cannot be completed at this time, status %s', statusCode)
+					this.log.info('This operation cannot be completed at this time, status %s', statusCode)
 					this.log.error('the charger %s has a fault condition with code=%s', device.name, statusCode)
 					controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(controlService.getCharacteristic(Characteristic.CurrentTemperature).value)
 					callback()
 					break
 				default:
-					this.log.info('This opertation cannot be completed at this time, status %s', statusCode)
+					this.log.info('This operation cannot be completed at this time, status %s', statusCode)
 					controlService.getCharacteristic(Characteristic.TargetTemperature).updateValue(controlService.getCharacteristic(Characteristic.CurrentTemperature).value)
 					callback()
 					break
@@ -238,12 +238,12 @@ class control {
 					break
 				case 'firmwareUpdate':
 				case 'errorMode':
-					this.log.info('This opertation cannot be completed at this time, status %s', statusCode)
+					this.log.info('This operation cannot be completed at this time, status %s', statusCode)
 					this.log.error('the charger %s has a fault condition with code=%s', device.name, statusCode)
 					controlService.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).value)
 					callback()
 				default:
-					this.log.info('This opertation cannot be completed at this time, status %s', statusCode)
+					this.log.info('This operation cannot be completed at this time, status %s', statusCode)
 					controlService.getCharacteristic(Characteristic.TargetHeatingCoolingState).updateValue(controlService.getCharacteristic(Characteristic.CurrentHeatingCoolingState).value)
 					callback()
 					break

@@ -233,7 +233,7 @@ class wallboxPlatform {
 				this.refreshToken=refresh.data.data.attributes.refresh_token
 				this.ttl=refresh.data.data.attributes.ttl
 				this.ttlTime=Math.round((refresh.data.data.attributes.ttl-Date.now())/60/1000)
-				return 'Refreshed exsisting token'
+				return 'Refreshed existing token'
 			}
 			if(refresh.status==401){
 				let signin=await this.wallboxapi.signin(this.email, this.password).catch(err=>{this.log.error('Failed to get signin for build. \n%s', err)})
@@ -376,7 +376,7 @@ class wallboxPlatform {
 			/****
 			enumerations will contain list of known status and descriptions
 			text is base on web, altText is based on app
-			statusDescipton is base on observered response or past API statusDescription
+			statusDescription is base on observed response or past API statusDescription
 			****/
 
 			try {

@@ -19,7 +19,7 @@ Fix
 ## 1.1.20
 Update
 -  Minor code cleanup
--  Fix model type characteritic.
+-  Fix model type characteristic.
 -  Added support for cached accessories
 
 ## 1.1.19
@@ -118,7 +118,7 @@ Update
 - Make sure setTokenRefresh function called at least once to setInterval for login token refresh.
 - Code cleanup
 - Cleanup log messaging.
-- Option to add Humidity Sensor for Battery percentage to create HomeKit automations. (HomeKit doesn't allow for automations off of battery percentage)
+- Option to add Humidity Sensor for Battery percentage to create HomeKit automation. (HomeKit doesn't allow for automatons off of battery percentage)
 - Bumped dependencies.
 
 ## 1.1.2

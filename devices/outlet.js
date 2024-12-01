@@ -115,12 +115,12 @@ class basicOutlet {
 					break
 				case 'firmwareUpdate':
 				case 'errorMode':
-					this.log.info('This opertation cannot be completed at this time, status %s', statusCode)
+					this.log.info('This operation cannot be completed at this time, status %s', statusCode)
 					this.log.error('the charger %s has a fault condition with code=%s', device.name, statusCode)
 					outletService.getCharacteristic(Characteristic.On).updateValue(!value)
 					callback()
 				default:
-					this.log.info('This opertation cannot be completed at this time, status %s', statusCode)
+					this.log.info('This operation cannot be completed at this time, status %s', statusCode)
 					outletService.getCharacteristic(Characteristic.On).updateValue(!value)
 					callback()
 					break
