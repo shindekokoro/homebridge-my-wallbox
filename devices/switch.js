@@ -31,7 +31,7 @@ class basicSwitch {
 	}
   updateSwitchService(switchService, switchState){
       if(!switchService){ return; }
-      this.log.info("Updated %s switch" , switchService.getCharacteristic(Characteristic.Name).value)
+      this.log.info("Updated %s switch to %s" , switchService.getCharacteristic(Characteristic.Name).value, switchState)
       switchService.getCharacteristic(Characteristic.On).updateValue(switchState)
   }
 	async setSwitchValue(device, switchService, value, callback) {

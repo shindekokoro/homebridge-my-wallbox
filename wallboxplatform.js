@@ -58,21 +58,22 @@ class wallboxPlatform {
 			this.useFahrenheit=false
 		}
 		if(!config.email || !config.password){
-			this.log.error('Valid email and password are required in order to communicate with wallbox, please check the plugin config')
-			}
-			this.log.info('Starting Wallbox platform using homebridge API', api.version)
-			if(api){
-				this.api=api
-				this.api.on("didFinishLaunching", function (){
-					// Get devices
-					this.getDevices()
-				}.bind(this))
-			}
+		this.log.error('Valid email and password are required in order to communicate with wallbox, please check the plugin config')
 		}
-	
-		identify(){
-			this.log.info('Identify wallbox!')
+		this.log.info('Starting Wallbox platform using homebridge API', api.version)
+		if(api){
+			this.api=api
+			this.api.on("didFinishLaunching", function (){
+				// Get devices
+				this.getDevices()
+			}.bind(this))
 		}
+	}
+
+	identify(){
+		this.log.info('Identify wallbox!')
+	}
+
 	async getDevices(){
 		try{
 			this.log.debug('Fetching Build info...')
@@ -92,18 +93,17 @@ class wallboxPlatform {
 			this.id=signin.data.attributes.user_id
 			this.token=signin.data.attributes.token
 			this.refreshToken=signin.data.attributes.refresh_token
-			this.refreshTtl=signin.data.attributes.refresh_token_ttl
 			this.ttl=signin.data.attributes.ttl
 			this.ttlTime=Math.round((signin.data.attributes.ttl-Date.now())/60/1000)
 			if(this.showUserMessages){
 				this.log.info('Current time ',new Date(Date.now()).toLocaleString())
 				this.log.info('Token will expire on %s, %s minutes ',new Date(signin.data.attributes.ttl).toLocaleString(), Math.round((signin.data.attributes.ttl-Date.now())/60/1000))
-				this.log.info('Refresh Token will expire on %s, %s days ',new Date(this.refreshTtl).toLocaleString(), Math.round((this.refreshTtl-Date.now())/24/60/60/1000))
+				this.log.info('Refresh Token will expire on %s, %s days ',new Date(signin.data.attributes.refresh_token_ttl).toLocaleString(), Math.round((signin.data.attributes.refresh_token_ttl-Date.now())/24/60/60/1000))
 				}
 			else{
 				this.log.debug('Current time ',new Date(Date.now()).toLocaleString())
 				this.log.debug('Token will expire on %s, %s minutes ',new Date(signin.data.attributes.ttl).toLocaleString(), Math.round((signin.data.attributes.ttl-Date.now())/60/1000))
-				this.log.debug('Refresh Token will expire on %s, %s days ',new Date(this.refreshTtl).toLocaleString(), Math.round((this.refreshTtl-Date.now())/24/60/60/1000))
+				this.log.debug('Refresh Token will expire on %s, %s days ',new Date(signin.data.attributes.refresh_token_ttl).toLocaleString(), Math.round((signin.data.attributes.refresh_token_ttl-Date.now())/24/60/60/1000))
 				}
 			//get get user id
 			let userId=await this.wallboxapi.getId(this.token, this.id).catch(err=>{this.log.error('Failed to get userId for build. \n%s', err)})
@@ -147,43 +147,109 @@ class wallboxPlatform {
             let uuid=UUIDGen.generate(chargerData.uid)
             let chargerConfig=await this.wallboxapi.getChargerConfig(this.token, charger).catch(err=>{this.log.error('Failed to get charger configs for build. \n%s', err)})
             let lockAccessory=this.lockMechanism.createLockAccessory(chargerData,chargerConfig,uuid,this.accessories[uuid])
-  					let lockService=lockAccessory.getService(Service.LockMechanism)
-	  				//this.lockMechanism.createLockService(chargerData)
-		  			this.lockMechanism.configureLockService(chargerData, lockService)
-					
-						let sensorService=this.sensor.createSensorService(chargerData,'SOC')
-						let batteryService=this.battery.createBatteryService(chargerData)
-						let outletService=this.outlet.createOutletService(chargerData,'Charging')
-						let controlService=this.control.createControlService(chargerData,'Charging Amps')
-						let switchService=this.basicSwitch.createSwitchService(chargerData,'Charging')
+            let lockService=lockAccessory.getService(Service.LockMechanism)
+            //this.lockMechanism.createLockService(chargerData)
+            this.lockMechanism.configureLockService(chargerData, lockService)
 
-						if(this.showSensor){
-							this.sensor.configureSensorService(chargerData,sensorService)
-							lockAccessory.getService(Service.LockMechanism).addLinkedService(sensorService)
-              this.log.warn(lockAccessory.getService(sensorService))
-							// lockAccessory.addService(sensorService)
-						}
-						if(this.showBattery){
-							this.battery.configureBatteryService(batteryService)
-							lockAccessory.getService(Service.LockMechanism).addLinkedService(batteryService)
-							// lockAccessory.addService(batteryService)
-							this.amps[batteryService.subtype]=chargerData.maxChgCurrent
-						}
-						if(this.showControls==5 || this.showControls==4){
-							this.outlet.configureOutletService(chargerData, outletService)
-							lockAccessory.getService(Service.LockMechanism).addLinkedService(outletService)
-							// lockAccessory.addService(outletService)
-						}
-						if(this.showControls==3 || this.showControls==4){
-							this.control.configureControlService(chargerData, controlService)
-							lockAccessory.getService(Service.LockMechanism).addLinkedService(controlService)
-							// lockAccessory.addService(controlService)
-						}
-						if(this.showControls==1 || this.showControls==4){
-							this.basicSwitch.configureSwitchService(chargerData, switchService)
-							lockAccessory.getService(Service.LockMechanism).addLinkedService(switchService)
-							// lockAccessory.addService(switchService)
-						}
+            if(this.showSensor){
+              let sensorService=this.sensor.createSensorService(chargerData,'SOC')
+              this.sensor.configureSensorService(chargerData,sensorService)
+              let service=lockAccessory.getService(Service.HumiditySensor)
+              if(!service){
+                lockAccessory.addService(sensorService)
+                this.api.updatePlatformAccessories([lockAccessory])
+              }
+              lockAccessory.getService(Service.LockMechanism).addLinkedService(sensorService)
+            }
+            else{
+              let service=lockAccessory.getService(Service.HumiditySensor)
+              if(service){
+                lockAccessory.removeService(service)
+                this.api.updatePlatformAccessories([lockAccessory])
+              }
+            }
+
+            if(this.showBattery){
+              let batteryService=this.battery.createBatteryService(chargerData)
+              this.battery.configureBatteryService(batteryService)
+              let service=lockAccessory.getService(Service.Battery)
+              if(!service){
+                lockAccessory.addService(batteryService)
+                this.api.updatePlatformAccessories([lockAccessory])
+              }
+              lockAccessory.getService(Service.LockMechanism).addLinkedService(batteryService)
+              this.amps[batteryService.subtype]=chargerData.maxChgCurrent
+            }
+            else{
+              let service=lockAccessory.getService(Service.Battery)
+              if(service){
+                lockAccessory.removeService(service)
+                this.api.updatePlatformAccessories([lockAccessory])
+              }
+            }
+
+            if(this.showControls==5 || this.showControls==4){
+              let outletService=lockAccessory.getService(Service.Outlet)
+              if(!outletService){
+                let outletService=this.outlet.createOutletService(chargerData,'Charging')
+                this.outlet.configureOutletService(chargerData, outletService)
+                lockAccessory.addService(outletService)
+                this.api.updatePlatformAccessories([lockAccessory])
+              }
+              else{
+                this.outlet.configureOutletService(chargerData, outletService)
+                this.api.updatePlatformAccessories([lockAccessory])
+              }
+            }
+            else{
+              let service=lockAccessory.getService(Service.Outlet)
+              if(service){
+                lockAccessory.removeService(service)
+                this.api.updatePlatformAccessories([lockAccessory])
+              }
+            }
+
+            if(this.showControls==3 || this.showControls==4){
+              let controlService=lockAccessory.getService(Service.Thermostat)
+              if(!controlService){
+                let controlService=this.control.createControlService(chargerData,'Charging Amps')
+                this.control.configureControlService(chargerData, controlService)
+                lockAccessory.addService(controlService)
+                this.api.updatePlatformAccessories([lockAccessory])
+              }
+              else{
+                this.control.configureControlService(chargerData, controlService)
+                this.api.updatePlatformAccessories([lockAccessory])
+              }
+            }
+            else{
+              let service=lockAccessory.getService(Service.Thermostat)
+              if(service){
+                lockAccessory.removeService(service)
+                this.api.updatePlatformAccessories([lockAccessory])
+              }
+            }
+
+            if(this.showControls==1 || this.showControls==4){
+              let switchService=lockAccessory.getService(Service.Switch)
+              if(!switchService){
+                let switchService=this.basicSwitch.createSwitchService(chargerData,'Charging')
+                this.basicSwitch.configureSwitchService(chargerData, switchService)
+                lockAccessory.addService(switchService)
+                lockAccessory.getService(Service.LockMechanism).addLinkedService(switchService)
+              }
+              else{
+                this.basicSwitch.configureSwitchService(chargerData, switchService)
+                this.api.updatePlatformAccessories([lockAccessory])
+              }
+            }
+            else{
+              let service=lockAccessory.getService(Service.Switch)
+              if(service){
+                lockAccessory.removeService(service)
+                this.api.updatePlatformAccessories([lockAccessory])
+              }
+            }
 
             if(!this.accessories[uuid]){
               this.log.debug('Registering platform accessory')
@@ -192,9 +258,10 @@ class wallboxPlatform {
             }
             this.setChargerRefresh(chargerData)
             this.getStatus(chargerData.id)
-					} else {
-						this.log.warn('%s not found in config, not added.',chargerData.name);
-					}
+          }
+          else{
+            this.log.warn('Charger "%s" not found in the plugin settings. Please check your plugin settings.', chargerData.name)
+          }
 				})
 			})
 			setTimeout(()=>{this.log.info('Wallbox platform finished loading')}, 2500)
@@ -213,21 +280,16 @@ class wallboxPlatform {
 	}
 
 	async getNewToken(token){
-		if(this.ttl > Date.now()){
-			return 'Token current, new token not needed.';
-		} else {
-			this.log.info('Current token has expired, refreshing.')
-		}
 		try{
 			let refresh=await this.wallboxapi.refresh(token).catch(err=>{this.log.error('Failed to refresh token. \n%s', err)})
 			if(refresh.status==200){
 				if(this.showUserMessages){
-					this.log.info('Updated token  %s********************%s', this.token.substring(0,35), this.token.substring((this.token).length-35))
-					this.log.info('Updated refresh token  %s********************%s', this.refreshToken.substring(0,35), this.refreshToken.substring((this.refreshToken).length-35))
+					this.log.info('Updated token  %s********************%s', refresh.data.data.attributes.token.substring(0,35),refresh.data.data.attributes.token.substring((refresh.data.data.attributes.token).length-35))
+					this.log.info('Updated refresh token  %s********************%s', refresh.data.data.attributes.refresh_token.substring(0,35),refresh.data.data.attributes.refresh_token.substring((refresh.data.data.attributes.refresh_token).length-35))
 				}
 				else{
-					this.log.debug('Updated token  %s********************%s', this.token.substring(0,35), this.token.substring((this.token).length-35))
-					this.log.debug('Updated refresh token  %s********************%s', this.refreshToken.substring(0,35),this.refreshToken.substring((this.refreshToken).length-35))
+					this.log.debug('Updated token  %s********************%s', refresh.data.data.attributes.token.substring(0,35),refresh.data.data.attributes.token.substring((refresh.data.data.attributes.token).length-35))
+					this.log.debug('Updated refresh token  %s********************%s', refresh.data.data.attributes.refresh_token.substring(0,35),refresh.data.data.attributes.refresh_token.substring((refresh.data.data.attributes.refresh_token).length-35))
 				}
 				this.id=refresh.data.data.attributes.user_id
 				this.token=refresh.data.data.attributes.token
@@ -239,12 +301,12 @@ class wallboxPlatform {
 			if(refresh.status==401){
 				let signin=await this.wallboxapi.signin(this.email, this.password).catch(err=>{this.log.error('Failed to get signin for build. \n%s', err)})
 				if(this.showUserMessages){
-					this.log.info('New token %s********************%s', this.token.substring(0,35), this.token.substring((this.token).length-35))
-					this.log.info('New refresh token  %s********************%s', this.refreshToken.substring(0,35),this.refreshToken.substring((this.refreshToken).length-35))
+					this.log.info('New token %s********************%s', signin.data.attributes.token.substring(0,35),signin.data.attributes.token.substring((signin.data.attributes.token).length-35))
+					this.log.info('New refresh token  %s********************%s', signin.data.attributes.refresh_token.substring(0,35),signin.data.attributes.refresh_token.substring((signin.data.attributes.refresh_token).length-35))
 				}
 				else{
-					this.log.debug('New token  %s********************%s', this.token.substring(0,35), this.token.substring((this.token).length-35))
-					this.log.debug('New refresh token  %s********************%s', this.refreshToken.substring(0,35), this.refreshToken.substring((this.refreshToken).length-35))
+					this.log.debug('New token  %s********************%s', signin.data.attributes.token.substring(0,35),signin.data.attributes.token.substring((signin.data.attributes.token).length-35))
+					this.log.debug('New refresh token  %s********************%s', signin.data.attributes.refresh_token.substring(0,35),signin.data.attributes.refresh_token.substring((signin.data.attributes.refresh_token).length-35))
 				}
 				this.id=signin.data.attributes.user_id
 				this.token=signin.data.attributes.token
@@ -353,14 +415,14 @@ class wallboxPlatform {
 		try{
 			let chargerID=charger.config_data.charger_id
 			let chargerUID=charger.config_data.uid
-			let locked=charger.config_data.locked
+			let lockedState=charger.config_data.locked
 			let maxAmps=charger.config_data.max_charging_current
 			let chargerName=charger.name
 			let statusID=charger.status_id
 			let added_kWh=charger.added_energy
 			let chargingTime=charger.charging_time
-			let uuid = UUIDGen.generate(chargerUID);
-			let lockAccessory = this.accessories[uuid];
+			let uuid=UUIDGen.generate(chargerUID)
+			let lockAccessory=this.accessories[uuid]
 			let controlService = lockAccessory.getServiceById(Service.Thermostat, chargerID);
 			let switchService = lockAccessory.getServiceById(Service.Switch, chargerID);
 			let outletService = lockAccessory.getServiceById(Service.Outlet, chargerID);
@@ -368,11 +430,11 @@ class wallboxPlatform {
 			let batteryService = lockAccessory.getServiceById(Service.Battery, chargerID);
 			let tempControl = this.useFahrenheit ? ((maxAmps-32+.01)*5/9).toFixed(2) : maxAmps;
 			let sensorService = lockAccessory.getServiceById(Service.HumiditySensor, chargerID);
-			let chargerState
+      let chargingState = false;
+      let outletState = false;
 			let statusInfo
 			let batteryPercent = this.calcBattery(batteryService,added_kWh,chargingTime);
-			this.log.debug('Updating charger ID %s',chargerID);
-			lockService=lockAccessory.getServiceById(Service.LockMechanism, chargerID)
+			this.log.debug('Updating charger ID %s',chargerID)
 
 			/****
 			enumerations will contain list of known status and descriptions
@@ -381,44 +443,43 @@ class wallboxPlatform {
 			****/
 
 			try {
-				statusInfo = this.enumeration.items.filter(result=>result.status == statusID)[0];
+				statusInfo=this.enumeration.items.filter(result=>result.status == statusID)[0]
 				this.log.debug('Refreshed charger with status=%s %s - %s. %s.',statusID,statusInfo.statusDescription,statusInfo.text,statusInfo.altText)
 			}catch(err) {
 				statusInfo.mode="unknown"
 			}
+      
+      this.sensor.updateSensorService(sensorService, batteryPercent);
 			switch(statusInfo.mode){
 				case 'lockedMode':
 				case 'readyMode':
-					let inUse = charger.statusID == 210 ? true : false;
-					chargerState = false;
-					this.lockMechanism.updateLockService(lockService, Characteristic.StatusFault.NO_FAULT, inUse, locked);
-					this.outlet.updateOutletService(outletService, chargerState);
-					this.control.updateControlService(controlService, chargerState, tempControl);
-					this.basicSwitch.updateSwitchService(switchService, chargerState);
-					this.battery.updateBatteryService(batteryService, Characteristic.ChargingState.NOT_CHARGING, batteryPercent);
-								this.sensor.updateSensorService(sensorService, batteryPercent);
-								break;
+          outletState = statusID === 210 ? true : false
+          this.lockMechanism.updateLockService(lockService, Characteristic.StatusFault.NO_FAULT, outletState, lockedState)
+          this.basicSwitch.updateSwitchService(switchService, chargingState)
+          this.outlet.updateOutletService(outletService, chargingState)
+          this.control.updateControlService(controlService, chargingState, tempControl)
+          this.battery.updateBatteryService(batteryService, Characteristic.ChargingState.NOT_CHARGING, batteryPercent)
+					break
 				case 'chargingMode':
-					chargerState = true;
-					this.lockMechanism.updateLockService(lockService, Characteristic.StatusFault.NO_FAULT, true, locked);
-					this.outlet.updateOutletService(outletService, chargerState);
-								this.control.updateControlService(controlService, chargerState, tempControl);
-					this.basicSwitch.updateSwitchService(switchService, chargerState);
-					this.battery.updateBatteryService(batteryService, Characteristic.ChargingState.CHARGING, batteryPercent);
-								this.sensor.updateSensorService(sensorService, batteryPercent);
-								break;
+          chargingState = true;
+          outletState = true;
+          this.lockMechanism.updateLockService(lockService, Characteristic.StatusFault.NO_FAULT, outletState, lockedState)
+          this.basicSwitch.updateSwitchService(switchService, chargingState)
+          this.outlet.updateOutletService(outletService, chargingState)
+          this.control.updateControlService(controlService, chargingState, tempControl)
+          this.battery.updateBatteryService(batteryService, Characteristic.ChargingState.CHARGING, batteryPercent)
+					break
 				case 'standbyMode':
-					chargerState = false;
-					this.lockMechanism.updateLockService(lockService, Characteristic.StatusFault.NO_FAULT, true, locked);
-					this.outlet.updateOutletService(outletService, chargerState);
-					this.control.updateControlService(controlService, chargerState, tempControl);
-					this.basicSwitch.updateSwitchService(switchService, chargerState);
-					this.battery.updateBatteryService(batteryService, Characteristic.ChargingState.NOT_CHARGING, batteryPercent);
-					this.sensor.updateSensorService(sensorService, batteryPercent);
+          outletState = true;
+          this.lockMechanism.updateLockService(lockService, Characteristic.StatusFault.NO_FAULT, outletState, lockedState)
+          this.basicSwitch.updateSwitchService(switchService, chargingState)
+          this.outlet.updateOutletService(outletService, chargingState)
+          this.control.updateControlService(controlService, chargingState, tempControl)
+          this.battery.updateBatteryService(batteryService, Characteristic.ChargingState.NOT_CHARGING, batteryPercent)
 					if(statusID==4){
 						this.log.info('%s completed at %s',chargerName, new Date().toLocaleString())
 					}
-					break;
+					break
 				case 'firmwareUpdate':
 				case 'errorMode':
 					lockService.getCharacteristic(Characteristic.StatusFault).updateValue(Characteristic.StatusFault.GENERAL_FAULT)
@@ -433,7 +494,7 @@ class wallboxPlatform {
 						case 5: //Offline':
 							this.log.warn('%s charger offline at %s! This will show as non-responding in Homekit until the connection is restored.',chargerName, new Date(charger.config_data.sync_timestamp*1000).toLocaleString())
 							break
-						case 0: //'Disconnected':
+            case 0: //'Disconnected':
 							this.log.warn('%s disconnected at %s! This will show as non-responding in Homekit until the connection is restored.',chargerName, new Date(charger.config_data.sync_timestamp*1000).toLocaleString())
 							break
 					}
