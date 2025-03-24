@@ -1,5 +1,10 @@
 # Changes
 
+## 1.2.00
+Update
+- Cleanup Code
+- Allow for un-updated status changes from Siri/Shortcuts access
+
 ## 1.1.23
 Update
 -  Bumped dependencies.
