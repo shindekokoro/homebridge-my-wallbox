@@ -261,7 +261,7 @@ class wallboxAPI {
       let response = await axios({
         method: 'get',
         baseURL: endpoint,
-        url: `/perseus/organizations/${group_id}/chargers`,
+        url: `v4/groups/${group_id}/chargers`,
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
